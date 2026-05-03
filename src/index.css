@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Heebo', 'Rubik', system-ui, sans-serif;
+  background: #fafafa;
+  color: #1f2937;
+}
+
+/* ── Entry animations ──────────────────────────────── */
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+@keyframes banner-down {
+  from { opacity: 0; transform: translateY(-100%); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-panel-in   { animation: panel-in   0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.animate-banner-down{ animation: banner-down 0.26s cubic-bezier(0.16, 1,    0.3,  1) both; }
+.animate-fade-up    { animation: fade-up     0.2s  cubic-bezier(0.16, 1,    0.3,  1) both; }
+
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to   { opacity: 1; transform: scale(1);   }
+}
+
+.animate-pop-in { animation: pop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
