@@ -16,7 +16,9 @@
       "Bash(gh repo *)",
       "Bash(git push *)",
       "Bash(git stash *)",
-      "Read(//c/Users/yehud/AppData/Local/Temp/claude/C--Users-yehud-Desktop-Computation-Project/0aa34fb0-44d9-4cff-834a-f558e7d93dd5/tasks/**)"
+      "Read(//c/Users/yehud/AppData/Local/Temp/claude/C--Users-yehud-Desktop-Computation-Project/0aa34fb0-44d9-4cff-834a-f558e7d93dd5/tasks/**)",
+      "Bash(cat)",
+      "Bash(node /tmp/pda-test2.mjs)"
     ]
   }
 }

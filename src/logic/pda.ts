@@ -17,8 +17,10 @@ export interface PdaRunResult {
 /**
  * Deterministic-ish PDA runner: at each step, picks the first applicable
  * transition (sorted by id). Empty `read` means epsilon (no input consumed).
- * Empty `pop` means no stack pop required. `push` is pushed left-to-right
- * so the rightmost char ends on top.
+ * The `pop` field is a PRECONDITION only — the rule applies if the stack top
+ * equals it (empty = any top). The action is determined by `pushMode`:
+ *  - 'push': push each character of `push` (no pop)
+ *  - 'pop':  pop one element off the stack (no push)
  */
 export function runPda(m: PdaMachine, word: string, maxSteps = 1000): PdaRunResult {
   const start = m.states.find((s) => s.isStart);
@@ -55,8 +57,9 @@ export function runPda(m: PdaMachine, word: string, maxSteps = 1000): PdaRunResu
 
     const { t, rule } = applicable[0];
     const newStack = [...cur.stack];
-    if (rule.pop) newStack.pop();
-    if ((rule.pushMode ?? 'push') !== 'pop' && rule.push) {
+    if ((rule.pushMode ?? 'push') === 'pop') {
+      newStack.pop();
+    } else if (rule.push) {
       for (const ch of rule.push) newStack.push(ch);
     }
 
