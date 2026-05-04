@@ -206,7 +206,7 @@ export default function PdaTestPanel({ machine, onHighlightState }: Props) {
         {/* Speed bar */}
         <div className="space-y-1">
           <span className="text-xs font-medium text-gray-500">{he.test.speed}</span>
-          <div className="flex items-center gap-2">
+          <div dir="ltr" className="flex items-center gap-2">
             <span title="מהיר" className="text-base leading-none select-none">🐇</span>
             <input
               type="range"
