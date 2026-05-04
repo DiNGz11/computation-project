@@ -256,18 +256,21 @@ export default function PdaTestPanel({ machine, onHighlightState }: Props) {
               <div className="max-h-[10.25rem] overflow-y-auto flex flex-col items-center">
                 {/* open top */}
                 <div className="w-10 border-l-2 border-r-2 border-dashed border-gray-300 h-2 flex-shrink-0" />
-                {[...currentStep.stack].reverse().map((c, i) => (
-                  <div
-                    key={i}
-                    className={`w-10 text-center font-mono text-sm py-1 border-l-2 border-r-2 border-b-2 flex-shrink-0 ${
-                      i === 0
-                        ? 'bg-violet-100 text-violet-800 font-bold border-violet-400'
-                        : 'bg-white text-gray-600 border-gray-300'
-                    }`}
-                  >
-                    {c}
-                  </div>
-                ))}
+                {currentStep.stack.slice().reverse().map((c, i) => {
+                  const stackPos = currentStep.stack.length - 1 - i;
+                  return (
+                    <div
+                      key={`s${stepIndex}-p${stackPos}`}
+                      className={`w-10 text-center font-mono text-sm py-1 border-l-2 border-r-2 border-b-2 flex-shrink-0 ${
+                        i === 0
+                          ? 'bg-violet-100 text-violet-800 font-bold border-violet-400'
+                          : 'bg-white text-gray-600 border-gray-300'
+                      }`}
+                    >
+                      {c}
+                    </div>
+                  );
+                })}
                 {/* closed bottom */}
                 <div className="w-10 border-l-2 border-r-2 border-b-2 border-gray-300 rounded-b h-1 flex-shrink-0" />
               </div>

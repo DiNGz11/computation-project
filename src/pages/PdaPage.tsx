@@ -126,30 +126,30 @@ function PdaPageInner() {
     ],
   );
 
-  const edges: Edge[] = useMemo(
-    () =>
-      machine.transitions.map((t) => ({
-        id: t.id,
-        source: t.from,
-        target: t.to,
-        type: 'transition',
-        data: {
-          pdaRules: t.rules.map(summarizePda),
-          onClickEdit: (id: string) => setEditingTransitionId(id),
-          pdaEditor:
-            editingTransitionId === t.id ? (
-              <PdaTransitionPopover
-                transition={t}
-                onSave={(rules) => setPdaRules(t.id, rules)}
-                onDelete={() => deleteTransition('pda', t.id)}
-                onClose={() => setEditingTransitionId(null)}
-                onError={showError}
-              />
-            ) : undefined,
-        } satisfies TransitionEdgeData,
-      })),
-    [machine.transitions, editingTransitionId, setPdaRules, deleteTransition, showError],
-  );
+  const edges: Edge[] = useMemo(() => {
+    const pairSet = new Set(machine.transitions.map((t) => `${t.from}:${t.to}`));
+    return machine.transitions.map((t) => ({
+      id: t.id,
+      source: t.from,
+      target: t.to,
+      type: 'transition',
+      data: {
+        pdaRules: t.rules.map(summarizePda),
+        hasReverse: pairSet.has(`${t.to}:${t.from}`),
+        onClickEdit: (id: string) => setEditingTransitionId(id),
+        pdaEditor:
+          editingTransitionId === t.id ? (
+            <PdaTransitionPopover
+              transition={t}
+              onSave={(rules) => setPdaRules(t.id, rules)}
+              onDelete={() => deleteTransition('pda', t.id)}
+              onClose={() => setEditingTransitionId(null)}
+              onError={showError}
+            />
+          ) : undefined,
+      } satisfies TransitionEdgeData,
+    }));
+  }, [machine.transitions, editingTransitionId, setPdaRules, deleteTransition, showError]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

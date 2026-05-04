@@ -242,20 +242,20 @@ export default function TransitionEdge(props: EdgeProps) {
           >
             <div className="relative">
               {d.pdaEditor}
-              {/* Bubble tail: white fill matches popover body, V-stroke matches its violet-100 border */}
+              {/* Bubble tail: white fill matches popover body, V-stroke uses violet-300 for visibility */}
               <svg
-                width="22"
-                height="13"
-                viewBox="0 0 22 13"
+                width="34"
+                height="20"
+                viewBox="0 0 34 20"
                 className="absolute left-1/2 -translate-x-1/2"
-                style={{ top: '100%', marginTop: '-1px' }}
+                style={{ top: '100%', marginTop: '-2px', filter: 'drop-shadow(0 4px 4px rgba(0,0,0,0.08))' }}
               >
-                <polygon points="1,0 11,12 21,0" fill="white" />
+                <polygon points="2,0 17,18 32,0" fill="white" />
                 <polyline
-                  points="1,0 11,12 21,0"
+                  points="2,0 17,18 32,0"
                   fill="none"
-                  stroke="rgb(237 233 254)"
-                  strokeWidth="1"
+                  stroke="rgb(196 181 253)"
+                  strokeWidth="1.75"
                   strokeLinejoin="round"
                 />
               </svg>
