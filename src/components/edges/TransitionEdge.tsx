@@ -8,7 +8,7 @@ import {
   Position,
   type EdgeProps,
 } from '@xyflow/react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { he } from '../../i18n/he';
 
 export interface TransitionEdgeData {
@@ -21,6 +21,7 @@ export interface TransitionEdgeData {
   onUpdateLetters?: (id: string, letters: string[]) => void;
   onClickEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  pdaEditor?: ReactNode;        // when set on a PDA edge, rendered in place of the label
 }
 
 // Source starts flush with the circle edge; target is pushed out to leave room for the arrowhead.
@@ -228,7 +229,9 @@ export default function TransitionEdge(props: EdgeProps) {
           className="nodrag nopan"
           dir="ltr"
         >
-          {editing && isDfa ? (
+          {isPda && d?.pdaEditor ? (
+            d.pdaEditor
+          ) : editing && isDfa ? (
             <div className="flex items-center gap-1">
               <input
                 ref={inputRef}

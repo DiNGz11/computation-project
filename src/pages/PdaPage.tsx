@@ -11,7 +11,7 @@ import Whiteboard from '../components/Whiteboard';
 import Toolbar from '../components/Toolbar';
 import AlertsPanel from '../components/AlertsPanel';
 import PdaTestPanel from '../components/PdaTestPanel';
-import PdaTransitionModal from '../components/PdaTransitionModal';
+import PdaTransitionPopover from '../components/PdaTransitionPopover';
 import StateEditPanel from '../components/StateEditPanel';
 import StateNode, { type StateNodeData } from '../components/nodes/StateNode';
 import TransitionEdge, { type TransitionEdgeData } from '../components/edges/TransitionEdge';
@@ -31,9 +31,9 @@ export default function PdaPage() {
 }
 
 function summarizePda(t: { read: string; pop: string; pushMode?: 'push' | 'pop'; push: string }) {
-  const r = t.read || '⊢';
-  const p = t.pop || '⊢';
-  const u = (t.pushMode ?? 'push') === 'pop' ? 'POP' : (t.push || '⊢');
+  const r = t.read || '⊥';
+  const p = t.pop || '⊥';
+  const u = (t.pushMode ?? 'push') === 'pop' ? 'POP' : (t.push || '⊥');
   return `${r}, ${p} / ${u}`;
 }
 
@@ -72,11 +72,6 @@ function PdaPageInner() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, []);
-
-  const editingTransition = useMemo(
-    () => machine.transitions.find((t) => t.id === editingTransitionId) ?? null,
-    [machine.transitions, editingTransitionId],
-  );
 
   const transitionExists = useCallback(
     (from: string, to: string) => machine.transitions.some((t) => t.from === from && t.to === to),
@@ -138,9 +133,18 @@ function PdaPageInner() {
         data: {
           pdaRules: t.rules.map(summarizePda),
           onClickEdit: (id: string) => setEditingTransitionId(id),
+          pdaEditor:
+            editingTransitionId === t.id ? (
+              <PdaTransitionPopover
+                transition={t}
+                onSave={(rules) => setPdaRules(t.id, rules)}
+                onDelete={() => deleteTransition('pda', t.id)}
+                onClose={() => setEditingTransitionId(null)}
+              />
+            ) : undefined,
         } satisfies TransitionEdgeData,
       })),
-    [machine.transitions],
+    [machine.transitions, editingTransitionId, setPdaRules, deleteTransition],
   );
 
   const onNodesChange = useCallback(
@@ -298,14 +302,6 @@ function PdaPageInner() {
         </aside>
       </div>
 
-      {editingTransition && (
-        <PdaTransitionModal
-          transition={editingTransition}
-          onSave={(rules) => setPdaRules(editingTransition.id, rules)}
-          onDelete={() => deleteTransition('pda', editingTransition.id)}
-          onClose={() => setEditingTransitionId(null)}
-        />
-      )}
     </div>
   );
 }
