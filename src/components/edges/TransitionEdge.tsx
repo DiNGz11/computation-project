@@ -5,10 +5,12 @@ import {
   useInternalNode,
   useEdges,
   useNodes,
+  useReactFlow,
   Position,
   type EdgeProps,
 } from '@xyflow/react';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { he } from '../../i18n/he';
 
 export interface TransitionEdgeData {
@@ -44,6 +46,7 @@ export default function TransitionEdge(props: EdgeProps) {
   const targetNode = useInternalNode(target);
   const allEdges = useEdges();
   const allNodes = useNodes();
+  const { flowToScreenPosition } = useReactFlow();
 
   const [editing, setEditing] = useState(() => !!(d?.newlyCreated && d?.letters !== undefined));
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
@@ -219,6 +222,27 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
+      {isPda && d?.pdaEditor && (() => {
+        const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });
+        return createPortal(
+          <div
+            style={{
+              position: 'fixed',
+              left: screen.x,
+              top: screen.y,
+              transform: 'translate(-50%, -50%)',
+              zIndex: 9999,
+              pointerEvents: 'all',
+            }}
+            className="nodrag nopan"
+            dir="ltr"
+          >
+            {d.pdaEditor}
+          </div>,
+          document.body,
+        );
+      })()}
+
       <EdgeLabelRenderer>
         <div
           style={{
@@ -230,7 +254,7 @@ export default function TransitionEdge(props: EdgeProps) {
           dir="ltr"
         >
           {isPda && d?.pdaEditor ? (
-            d.pdaEditor
+            <span className="invisible">·</span>
           ) : editing && isDfa ? (
             <div className="flex items-center gap-1">
               <input

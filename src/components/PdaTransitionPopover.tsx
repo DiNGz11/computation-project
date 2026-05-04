@@ -57,63 +57,64 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
   return (
     <div
       ref={cardRef}
-      className="animate-panel-in rounded-2xl overflow-hidden shadow-xl border border-violet-100 bg-white w-[24rem]"
+      style={{ zIndex: 1000 }}
+      className="relative animate-panel-in rounded-xl overflow-hidden shadow-xl border border-violet-100 bg-white w-64"
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
     >
-      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-3 py-2 flex items-center justify-between">
-        <h3 className="text-xs font-bold text-white tracking-wide">{he.transition.editTitle}</h3>
+      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-2 py-1 flex items-center justify-between">
+        <h3 className="text-[10px] font-bold text-white tracking-wide">{he.transition.editTitle}</h3>
         <button
           onClick={onClose}
-          className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-sm leading-none transition-colors"
+          className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-xs leading-none transition-colors"
         >
           ×
         </button>
       </div>
 
-      <div className="p-3 space-y-2">
-        <div dir="ltr" className="flex items-center gap-1 pb-1 px-0.5">
-          <span className="flex-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide text-center">
+      <div className="p-2 space-y-1.5">
+        <div dir="ltr" className="flex items-center gap-0.5 px-0.5">
+          <span className="flex-1 text-[9px] font-semibold text-gray-500 uppercase tracking-wide text-center">
             {he.transition.pdaRead}
           </span>
-          <span className="w-2" />
-          <span className="flex-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wide text-center">
+          <span className="w-1.5" />
+          <span className="flex-1 text-[9px] font-semibold text-gray-500 uppercase tracking-wide text-center">
             {he.transition.pdaPop}
           </span>
-          <span className="w-2" />
-          <span className="flex-[2] text-[10px] font-semibold text-gray-500 uppercase tracking-wide text-center">
+          <span className="w-1.5" />
+          <span className="flex-[2] text-[9px] font-semibold text-gray-500 uppercase tracking-wide text-center">
             {he.transition.pdaStackOp}
           </span>
-          <span className="w-5" />
+          <span className="w-4" />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {rules.map((rule, i) => {
             const mode = rule.pushMode ?? 'push';
             return (
-              <div key={i} dir="ltr" className="flex items-center gap-1">
+              <div key={i} dir="ltr" className="flex items-center gap-0.5">
                 <input
                   dir="ltr"
                   value={rule.read}
                   onChange={(e) => updateRule(i, { read: filterSingle(e.target.value) })}
                   placeholder="⊥"
-                  className="flex-1 min-w-0 px-1.5 py-1 border-2 border-gray-200 rounded-lg text-sm font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
+                  className="flex-1 min-w-0 px-1 py-0.5 border border-gray-200 rounded text-xs font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
                 />
-                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0">,</span>
+                <span className="text-gray-400 font-mono text-[10px] w-1.5 text-center flex-shrink-0">,</span>
                 <input
                   dir="ltr"
                   value={rule.pop}
                   onChange={(e) => updateRule(i, { pop: filterSingle(e.target.value) })}
                   placeholder="⊥"
-                  className="flex-1 min-w-0 px-1.5 py-1 border-2 border-gray-200 rounded-lg text-sm font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
+                  className="flex-1 min-w-0 px-1 py-0.5 border border-gray-200 rounded text-xs font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
                 />
-                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0">/</span>
-                <div className="flex-[2] min-w-0 flex items-center gap-1">
-                  <div className="flex rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0 text-[10px] font-mono">
+                <span className="text-gray-400 font-mono text-[10px] w-1.5 text-center flex-shrink-0">/</span>
+                <div className="flex-[2] min-w-0 flex items-center gap-0.5">
+                  <div className="flex rounded overflow-hidden border border-gray-200 flex-shrink-0 text-[9px] font-mono">
                     <button
                       type="button"
                       onClick={() => updateRule(i, { pushMode: 'push' })}
-                      className={`px-1.5 py-1 transition-colors ${
+                      className={`px-1 py-0.5 transition-colors ${
                         mode === 'push'
                           ? 'bg-violet-600 text-white'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -124,7 +125,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                     <button
                       type="button"
                       onClick={() => updateRule(i, { pushMode: 'pop', push: '' })}
-                      className={`px-1.5 py-1 border-l border-gray-200 transition-colors ${
+                      className={`px-1 py-0.5 border-l border-gray-200 transition-colors ${
                         mode === 'pop'
                           ? 'bg-violet-600 text-white'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -139,14 +140,14 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                       value={rule.push}
                       onChange={(e) => updateRule(i, { push: filterMulti(e.target.value) })}
                       placeholder="⊥"
-                      className="flex-1 min-w-0 px-1.5 py-1 border-2 border-gray-200 rounded-lg text-sm font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
+                      className="flex-1 min-w-0 px-1 py-0.5 border border-gray-200 rounded text-xs font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
                     />
                   )}
                 </div>
                 <button
                   aria-label={he.transition.removeRule}
                   onClick={() => removeRule(i)}
-                  className="w-5 h-5 flex items-center justify-center rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 text-xs font-bold leading-none flex-shrink-0"
+                  className="w-4 h-4 flex items-center justify-center rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 text-[10px] font-bold leading-none flex-shrink-0"
                 >
                   ×
                 </button>
@@ -157,15 +158,15 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
 
         <button
           onClick={addRule}
-          className="w-full px-3 py-1 border-2 border-dashed border-violet-200 text-violet-600 text-xs font-medium rounded-xl hover:border-violet-400 hover:bg-violet-50 transition-all"
+          className="w-full px-2 py-0.5 border border-dashed border-violet-200 text-violet-600 text-[10px] font-medium rounded-lg hover:border-violet-400 hover:bg-violet-50 transition-all"
         >
           + {he.transition.addRule}
         </button>
 
-        <div className="flex justify-end pt-1">
+        <div className="flex justify-end">
           <button
             onClick={() => { onDelete(); onClose(); }}
-            className="px-3 py-1 bg-white text-rose-600 text-xs font-medium rounded-lg border-2 border-rose-200 hover:bg-rose-50 hover:border-rose-400 transition-all"
+            className="px-2 py-0.5 bg-white text-rose-600 text-[10px] font-medium rounded border border-rose-200 hover:bg-rose-50 hover:border-rose-400 transition-all"
           >
             {he.transition.deleteTransition}
           </button>
