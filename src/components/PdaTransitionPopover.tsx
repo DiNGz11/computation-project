@@ -7,23 +7,36 @@ interface Props {
   onSave: (rules: PdaRule[]) => void;
   onDelete: () => void;
   onClose: () => void;
+  onError: (msg: string) => void;
 }
 
 const ALLOWED = /[^a-zA-Zא-ת0-9]/g;
 const filterSingle = (v: string) => v.replace(ALLOWED, '').slice(0, 1);
 const filterMulti = (v: string) => v.replace(ALLOWED, '');
 
-export default function PdaTransitionPopover({ transition, onSave, onDelete, onClose }: Props) {
+const isEmptyRule = (r: PdaRule) =>
+  r.read.trim() === '' && r.pop.trim() === '' && (r.pushMode !== 'push' || r.push.trim() === '');
+const isInvalidPush = (r: PdaRule) =>
+  (r.pushMode ?? 'push') === 'push' && r.push.trim() === '';
+
+export default function PdaTransitionPopover({ transition, onSave, onDelete, onClose, onError }: Props) {
   const [rules, setRules] = useState<PdaRule[]>(
     transition.rules.length > 0
       ? transition.rules
       : [{ read: '', pop: '', pushMode: 'push', push: '' }],
   );
   const cardRef = useRef<HTMLDivElement>(null);
+  const rulesRef = useRef(rules);
+  rulesRef.current = rules;
 
   const commit = (next: PdaRule[]) => {
     setRules(next);
-    const trimmed = next.map((r) => ({
+    const nonEmpty = next.filter((r) => !isEmptyRule(r));
+    // Mid-typing: silently skip save when any non-empty rule still has an empty
+    // push. Local state stays so the user can keep typing; nothing reaches the
+    // store until the rule is valid.
+    if (nonEmpty.some(isInvalidPush)) return;
+    const trimmed = nonEmpty.map((r) => ({
       read: r.read.trim(),
       pop: r.pop.trim(),
       pushMode: r.pushMode ?? 'push',
@@ -39,12 +52,21 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
     commit([...rules, { read: '', pop: '', pushMode: 'push', push: '' }]);
   const removeRule = (i: number) => commit(rules.filter((_, idx) => idx !== i));
 
+  const attemptClose = () => {
+    const invalid = rulesRef.current.filter((r) => !isEmptyRule(r)).some(isInvalidPush);
+    if (invalid) {
+      onError(he.errors.emptyPush);
+      return;
+    }
+    onClose();
+  };
+
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) attemptClose();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') attemptClose();
     };
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('keydown', onKey);
@@ -52,7 +74,8 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div
@@ -65,7 +88,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
       <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-3 py-2 flex items-center justify-between">
         <h3 className="text-sm font-bold text-white tracking-wide">{he.transition.editTitle}</h3>
         <button
-          onClick={onClose}
+          onClick={attemptClose}
           className="w-6 h-6 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center text-base leading-none transition-colors"
         >
           ×

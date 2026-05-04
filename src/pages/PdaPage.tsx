@@ -143,11 +143,12 @@ function PdaPageInner() {
                 onSave={(rules) => setPdaRules(t.id, rules)}
                 onDelete={() => deleteTransition('pda', t.id)}
                 onClose={() => setEditingTransitionId(null)}
+                onError={showError}
               />
             ) : undefined,
         } satisfies TransitionEdgeData,
       })),
-    [machine.transitions, editingTransitionId, setPdaRules, deleteTransition],
+    [machine.transitions, editingTransitionId, setPdaRules, deleteTransition, showError],
   );
 
   const onNodesChange = useCallback(

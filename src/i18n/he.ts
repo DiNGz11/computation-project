@@ -133,6 +133,7 @@ export const he = {
   },
   errors: {
     duplicateTransition: 'מעבר כזה כבר קיים — לא ניתן ליצור מעבר כפול בין אותם מצבים.',
+    emptyPush: 'חובה להזין אות לדחיפה למחסנית — אסור לדחוף ריק.',
   },
   editPanel: {
     title: 'עריכת מצב',
