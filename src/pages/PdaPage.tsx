@@ -33,8 +33,11 @@ export default function PdaPage() {
 function summarizePda(t: { read: string; pop: string; pushMode?: 'push' | 'pop'; push: string }) {
   const r = t.read || '⊥';
   const p = t.pop || '⊥';
-  const u = (t.pushMode ?? 'push') === 'pop' ? 'POP' : (t.push || '⊥');
-  return `${r}, ${p} / ${u}`;
+  const action =
+    (t.pushMode ?? 'push') === 'pop'
+      ? 'POP'
+      : `PUSH ${t.push || '⊥'}`;
+  return `${r}, ${p} / ${action}`;
 }
 
 function PdaPageInner() {

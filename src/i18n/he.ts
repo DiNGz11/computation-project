@@ -37,7 +37,7 @@ export const he = {
     lettersHint: 'הקלידו אות אחת או כמה (מופרדות בפסיק) שעוברות על המעבר הזה.',
     deleteTransition: 'מחק מעבר',
     pdaRead: 'קוראים',
-    pdaPop: 'שולפים מהמחסנית',
+    pdaPop: 'בראש המחסנית',
     pdaPush: 'דוחפים למחסנית',
     tmRead: 'קוראים',
     tmWrite: 'כותבים',
