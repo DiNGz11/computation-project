@@ -245,49 +245,90 @@ export default function PdaTestPanel({ machine, onHighlightState }: Props) {
         {/* Stack display */}
         {hasSteps && currentStep && (
           <div dir="ltr" className="animate-fade-up bg-gray-50 border-2 border-gray-200 rounded-xl p-2.5">
-            <div className="text-[10px] text-gray-400 mb-2 font-sans">{he.test.stack}</div>
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="text-[10px] text-gray-400 font-sans">{he.test.stack}</div>
+              <div className="text-[10px] text-violet-500 font-mono">
+                [{currentStep.stack.join(',')}] · {currentStep.stack.length}
+              </div>
+            </div>
             {currentStep.stack.length === 0 ? (
-              <div className="flex justify-center">
+              <div style={{ textAlign: 'center' }}>
                 <div
-                  style={{ width: '40px', height: '32px', lineHeight: '32px' }}
-                  className="border-l-2 border-r-2 border-b-2 border-gray-300 text-center text-gray-400 text-sm font-mono rounded-b"
+                  style={{
+                    display: 'inline-block',
+                    width: '40px',
+                    height: '32px',
+                    lineHeight: '32px',
+                    borderLeft: '2px solid #d1d5db',
+                    borderRight: '2px solid #d1d5db',
+                    borderBottom: '2px solid #d1d5db',
+                    borderBottomLeftRadius: '6px',
+                    borderBottomRightRadius: '6px',
+                    color: '#9ca3af',
+                    fontFamily: 'monospace',
+                    fontSize: '14px',
+                  }}
                 >
                   ∅
                 </div>
               </div>
             ) : (
-              <div
-                style={{ maxHeight: '11rem', overflowY: 'auto' }}
-                className="flex justify-center"
-              >
-                <div className="inline-block">
-                  {/* open top */}
-                  <div
-                    style={{ width: '40px', height: '8px' }}
-                    className="border-l-2 border-r-2 border-dashed border-gray-300"
-                  />
-                  {currentStep.stack.slice().reverse().map((c, i) => {
-                    const stackPos = currentStep.stack.length - 1 - i;
-                    return (
-                      <div
-                        key={`s${stepIndex}-p${stackPos}`}
-                        style={{ width: '40px', height: '28px', lineHeight: '28px' }}
-                        className={`text-center font-mono text-sm border-l-2 border-r-2 border-b-2 ${
-                          i === 0
-                            ? 'bg-violet-100 text-violet-800 font-bold border-violet-400'
-                            : 'bg-white text-gray-600 border-gray-300'
-                        }`}
-                      >
-                        {c}
-                      </div>
-                    );
-                  })}
-                  {/* closed bottom */}
-                  <div
-                    style={{ width: '40px', height: '4px' }}
-                    className="border-l-2 border-r-2 border-b-2 border-gray-300 rounded-b"
-                  />
-                </div>
+              <div style={{ textAlign: 'center', maxHeight: '11rem', overflowY: 'auto' }}>
+                <table style={{ display: 'inline-table', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td
+                        style={{
+                          width: '40px',
+                          height: '8px',
+                          borderLeft: '2px dashed #d1d5db',
+                          borderRight: '2px dashed #d1d5db',
+                          padding: 0,
+                        }}
+                      />
+                    </tr>
+                    {currentStep.stack.slice().reverse().map((c, i) => {
+                      const stackPos = currentStep.stack.length - 1 - i;
+                      const isTop = i === 0;
+                      return (
+                        <tr key={`s${stepIndex}-p${stackPos}`}>
+                          <td
+                            style={{
+                              width: '40px',
+                              height: '28px',
+                              textAlign: 'center',
+                              fontFamily: 'monospace',
+                              fontSize: '14px',
+                              padding: 0,
+                              borderLeft: `2px solid ${isTop ? '#a78bfa' : '#d1d5db'}`,
+                              borderRight: `2px solid ${isTop ? '#a78bfa' : '#d1d5db'}`,
+                              borderBottom: `2px solid ${isTop ? '#a78bfa' : '#d1d5db'}`,
+                              background: isTop ? '#ede9fe' : '#ffffff',
+                              color: isTop ? '#5b21b6' : '#4b5563',
+                              fontWeight: isTop ? 700 : 400,
+                            }}
+                          >
+                            {c}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr>
+                      <td
+                        style={{
+                          width: '40px',
+                          height: '4px',
+                          borderLeft: '2px solid #d1d5db',
+                          borderRight: '2px solid #d1d5db',
+                          borderBottom: '2px solid #d1d5db',
+                          borderBottomLeftRadius: '6px',
+                          borderBottomRightRadius: '6px',
+                          padding: 0,
+                        }}
+                      />
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
