@@ -247,32 +247,47 @@ export default function PdaTestPanel({ machine, onHighlightState }: Props) {
           <div dir="ltr" className="animate-fade-up bg-gray-50 border-2 border-gray-200 rounded-xl p-2.5">
             <div className="text-[10px] text-gray-400 mb-2 font-sans">{he.test.stack}</div>
             {currentStep.stack.length === 0 ? (
-              <div className="flex flex-col items-center">
-                <div className="w-10 border-l-2 border-r-2 border-b-2 border-gray-300 py-2 text-center text-gray-400 text-sm font-mono rounded-b">
+              <div className="flex justify-center">
+                <div
+                  style={{ width: '40px', height: '32px', lineHeight: '32px' }}
+                  className="border-l-2 border-r-2 border-b-2 border-gray-300 text-center text-gray-400 text-sm font-mono rounded-b"
+                >
                   ∅
                 </div>
               </div>
             ) : (
-              <div className="max-h-[10.25rem] overflow-y-auto flex flex-col items-center">
-                {/* open top */}
-                <div className="w-10 border-l-2 border-r-2 border-dashed border-gray-300 h-2 flex-shrink-0" />
-                {currentStep.stack.slice().reverse().map((c, i) => {
-                  const stackPos = currentStep.stack.length - 1 - i;
-                  return (
-                    <div
-                      key={`s${stepIndex}-p${stackPos}`}
-                      className={`w-10 text-center font-mono text-sm py-1 border-l-2 border-r-2 border-b-2 flex-shrink-0 ${
-                        i === 0
-                          ? 'bg-violet-100 text-violet-800 font-bold border-violet-400'
-                          : 'bg-white text-gray-600 border-gray-300'
-                      }`}
-                    >
-                      {c}
-                    </div>
-                  );
-                })}
-                {/* closed bottom */}
-                <div className="w-10 border-l-2 border-r-2 border-b-2 border-gray-300 rounded-b h-1 flex-shrink-0" />
+              <div
+                style={{ maxHeight: '11rem', overflowY: 'auto' }}
+                className="flex justify-center"
+              >
+                <div className="inline-block">
+                  {/* open top */}
+                  <div
+                    style={{ width: '40px', height: '8px' }}
+                    className="border-l-2 border-r-2 border-dashed border-gray-300"
+                  />
+                  {currentStep.stack.slice().reverse().map((c, i) => {
+                    const stackPos = currentStep.stack.length - 1 - i;
+                    return (
+                      <div
+                        key={`s${stepIndex}-p${stackPos}`}
+                        style={{ width: '40px', height: '28px', lineHeight: '28px' }}
+                        className={`text-center font-mono text-sm border-l-2 border-r-2 border-b-2 ${
+                          i === 0
+                            ? 'bg-violet-100 text-violet-800 font-bold border-violet-400'
+                            : 'bg-white text-gray-600 border-gray-300'
+                        }`}
+                      >
+                        {c}
+                      </div>
+                    );
+                  })}
+                  {/* closed bottom */}
+                  <div
+                    style={{ width: '40px', height: '4px' }}
+                    className="border-l-2 border-r-2 border-b-2 border-gray-300 rounded-b"
+                  />
+                </div>
               </div>
             )}
           </div>
