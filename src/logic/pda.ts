@@ -51,8 +51,11 @@ export function runPda(m: PdaMachine, word: string, maxSteps = 1000): PdaRunResu
 
     if (applicable.length === 0) {
       const finalState = m.states.find((s) => s.id === cur.stateId);
-      const accepted = cur.inputIndex === word.length && !!finalState?.isAccepting;
-      return { steps, accepted, stuck: !accepted };
+      const reachedEnd = cur.inputIndex === word.length;
+      const accepted = reachedEnd && !!finalState?.isAccepting;
+      // "Stuck" means we ran out of moves mid-word. Reaching the end of the
+      // word in a non-accepting state is "rejected", not stuck.
+      return { steps, accepted, stuck: !reachedEnd };
     }
 
     const { t, rule } = applicable[0];

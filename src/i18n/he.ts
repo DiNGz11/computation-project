@@ -60,7 +60,7 @@ export const he = {
     resume: 'המשך',
     speed: 'מהירות',
     accepted: 'המילה התקבלה ✔',
-    rejected: 'המילה לא התקבלה ✖',
+    rejected: 'הקריאה הסתיימה במצב לא מקבל — המילה לא התקבלה ✖',
     running: 'רץ...',
     noStart: 'אי אפשר להריץ — אין מצב התחלתי',
     currentState: 'מצב נוכחי',

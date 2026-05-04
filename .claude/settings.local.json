@@ -18,7 +18,9 @@
       "Bash(git stash *)",
       "Read(//c/Users/yehud/AppData/Local/Temp/claude/C--Users-yehud-Desktop-Computation-Project/0aa34fb0-44d9-4cff-834a-f558e7d93dd5/tasks/**)",
       "Bash(cat)",
-      "Bash(node /tmp/pda-test2.mjs)"
+      "Bash(node /tmp/pda-test2.mjs)",
+      "PowerShell(Get-Process *)",
+      "Bash(curl -s http://localhost:5173/src/logic/pda.ts)"
     ]
   }
 }
