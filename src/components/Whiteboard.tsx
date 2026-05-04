@@ -23,6 +23,7 @@ interface Props {
   onNodeClick?: (event: React.MouseEvent, node: Node) => void;
   onPaneClick?: (event: React.MouseEvent) => void;
   onDoubleClick?: React.MouseEventHandler;
+  nodesDraggable?: boolean;
 }
 
 export default function Whiteboard({
@@ -36,6 +37,7 @@ export default function Whiteboard({
   onNodeClick,
   onPaneClick,
   onDoubleClick,
+  nodesDraggable,
 }: Props) {
   return (
     <ReactFlow
@@ -49,6 +51,7 @@ export default function Whiteboard({
       onNodeClick={onNodeClick}
       onPaneClick={onPaneClick}
       onDoubleClick={onDoubleClick}
+      nodesDraggable={nodesDraggable}
       proOptions={{ hideAttribution: true }}
       fitView
       defaultEdgeOptions={{ type: 'transition' }}

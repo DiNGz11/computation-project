@@ -277,6 +277,7 @@ function PdaPageInner() {
             edgeTypes={edgeTypes}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            nodesDraggable={pendingTransitionSource === null}
           />
 
           {/* Floating state-edit panel */}

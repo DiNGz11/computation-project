@@ -300,6 +300,7 @@ function DfaPageInner() {
             edgeTypes={edgeTypes}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            nodesDraggable={pendingTransitionSource === null}
           />
 
           {/* Floating state-edit panel — overlaid on the canvas, logical-start (right in RTL) */}

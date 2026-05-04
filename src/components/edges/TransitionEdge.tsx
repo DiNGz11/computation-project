@@ -224,20 +224,42 @@ export default function TransitionEdge(props: EdgeProps) {
 
       {isPda && d?.pdaEditor && (() => {
         const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });
+        // Bubble sits above the transition label with a gap for the tail,
+        // and a small downward triangle at the bottom that points to the label.
+        const TAIL_GAP = 14;
         return createPortal(
           <div
             style={{
               position: 'fixed',
               left: screen.x,
-              top: screen.y,
-              transform: 'translate(-50%, -50%)',
+              top: screen.y - TAIL_GAP,
+              transform: 'translate(-50%, -100%)',
               zIndex: 9999,
               pointerEvents: 'all',
             }}
             className="nodrag nopan"
             dir="ltr"
           >
-            {d.pdaEditor}
+            <div className="relative">
+              {d.pdaEditor}
+              {/* Bubble tail: white fill matches popover body, V-stroke matches its violet-100 border */}
+              <svg
+                width="22"
+                height="13"
+                viewBox="0 0 22 13"
+                className="absolute left-1/2 -translate-x-1/2"
+                style={{ top: '100%', marginTop: '-1px' }}
+              >
+                <polygon points="1,0 11,12 21,0" fill="white" />
+                <polyline
+                  points="1,0 11,12 21,0"
+                  fill="none"
+                  stroke="rgb(237 233 254)"
+                  strokeWidth="1"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
           </div>,
           document.body,
         );
