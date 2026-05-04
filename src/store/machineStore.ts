@@ -161,7 +161,9 @@ export const useMachineStore = create<MachinesState>()(
 
       addPdaTransition: (from, to) => {
         const id = newId();
-        const t: PdaTransition = { id, from, to, rules: [{ read: '', pop: '', pushMode: 'push', push: '' }] };
+        // Seed with no rules — the popover provides a local blank row to fill in.
+        // Empty PUSH rules are not allowed in the store, so we don't add one here.
+        const t: PdaTransition = { id, from, to, rules: [] };
         set((s) => ({ ...s, pda: { ...s.pda, transitions: [...s.pda.transitions, t] } }));
         return id;
       },

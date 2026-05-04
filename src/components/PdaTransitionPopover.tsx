@@ -29,21 +29,22 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
   const rulesRef = useRef(rules);
   rulesRef.current = rules;
 
+  const computeSaveable = (next: PdaRule[]): PdaRule[] =>
+    next
+      .filter((r) => !isEmptyRule(r) && !isInvalidPush(r))
+      .map((r) => ({
+        read: r.read.trim(),
+        pop: r.pop.trim(),
+        pushMode: r.pushMode ?? 'push',
+        push: (r.pushMode ?? 'push') === 'pop' ? '' : r.push.trim(),
+      }));
+
   const commit = (next: PdaRule[]) => {
     setRules(next);
-    const nonEmpty = next.filter((r) => !isEmptyRule(r));
-    // Mid-typing: silently skip save when any non-empty rule still has an empty
-    // push. Local state stays so the user can keep typing; nothing reaches the
-    // store until the rule is valid.
-    if (nonEmpty.some(isInvalidPush)) return;
-    const trimmed = nonEmpty.map((r) => ({
-      read: r.read.trim(),
-      pop: r.pop.trim(),
-      pushMode: r.pushMode ?? 'push',
-      push: (r.pushMode ?? 'push') === 'pop' ? '' : r.push.trim(),
-    }));
-    if (trimmed.length === 0) onDelete();
-    else onSave(trimmed);
+    // Always sync the store to the *valid* slice. Invalid rules (push mode +
+    // empty push) live only in local state until the user fixes them — they
+    // never reach the store, so the edge label never shows an empty push.
+    onSave(computeSaveable(next));
   };
 
   const updateRule = (i: number, patch: Partial<PdaRule>) =>
@@ -53,9 +54,15 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
   const removeRule = (i: number) => commit(rules.filter((_, idx) => idx !== i));
 
   const attemptClose = () => {
-    const invalid = rulesRef.current.filter((r) => !isEmptyRule(r)).some(isInvalidPush);
-    if (invalid) {
+    const local = rulesRef.current;
+    const nonEmpty = local.filter((r) => !isEmptyRule(r));
+    if (nonEmpty.some(isInvalidPush)) {
       onError(he.errors.emptyPush);
+      return;
+    }
+    if (nonEmpty.length === 0) {
+      onDelete();
+      onClose();
       return;
     }
     onClose();
@@ -157,15 +164,25 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                       POP
                     </button>
                   </div>
-                  {mode === 'push' && (
-                    <input
-                      dir="ltr"
-                      value={rule.push}
-                      onChange={(e) => updateRule(i, { push: filterMulti(e.target.value) })}
-                      placeholder="⊥"
-                      className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-base font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
-                    />
-                  )}
+                  {mode === 'push' && (() => {
+                    const showError =
+                      rule.push.trim() === '' &&
+                      (rule.read.trim() !== '' || rule.pop.trim() !== '');
+                    return (
+                      <input
+                        dir="ltr"
+                        value={rule.push}
+                        onChange={(e) => updateRule(i, { push: filterMulti(e.target.value) })}
+                        placeholder="חובה"
+                        title={showError ? he.errors.emptyPush : undefined}
+                        className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg text-base font-mono text-center outline-none focus:bg-white transition-colors ${
+                          showError
+                            ? 'border-rose-400 bg-rose-50 focus:border-rose-500 placeholder-rose-400'
+                            : 'border-gray-200 bg-gray-50 focus:border-violet-400'
+                        }`}
+                      />
+                    );
+                  })()}
                 </div>
                 <button
                   aria-label={he.transition.removeRule}
