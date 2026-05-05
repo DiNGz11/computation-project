@@ -53,21 +53,25 @@ export default function TransitionEdge(props: EdgeProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sweep animation: fire once each time highlighted goes false→true.
+  // Driven via Web Animations API on the path ref so neither React's
+  // mount/unmount cycle nor StrictMode double-invocation can re-trigger it.
   const prevHighlightedRef = useRef(false);
-  const [sweepKey, setSweepKey] = useState(0);
-  const [sweepActive, setSweepActive] = useState(false);
+  const sweepPathRef = useRef<SVGPathElement | null>(null);
   useEffect(() => {
     const prev = prevHighlightedRef.current;
     const curr = d?.highlighted ?? false;
     prevHighlightedRef.current = curr;
-    if (curr && !prev) {
-      setSweepKey((k) => k + 1);
-      setSweepActive(true);
-    } else if (!curr && sweepActive) {
-      setSweepActive(false);
+    if (curr && !prev && sweepPathRef.current) {
+      sweepPathRef.current.getAnimations().forEach((a) => a.cancel());
+      sweepPathRef.current.animate(
+        [
+          { strokeDashoffset: 1, opacity: 1, offset: 0 },
+          { opacity: 1, offset: 0.55 },
+          { strokeDashoffset: 0, opacity: 0, offset: 1 },
+        ],
+        { duration: 450, easing: 'ease-out', fill: 'forwards' },
+      );
     }
-  // sweepActive intentionally omitted — only triggered by highlighted edge transitions
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d?.highlighted]);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
@@ -265,20 +269,17 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
-      {sweepActive && (
-        <path
-          key={sweepKey}
-          d={sweepPath}
-          pathLength="1"
-          fill="none"
-          stroke="#fbbf24"
-          strokeWidth={4}
-          strokeLinecap="round"
-          strokeDasharray="1"
-          className="edge-highlighted-sweep"
-          style={{ pointerEvents: 'none' }}
-        />
-      )}
+      <path
+        ref={sweepPathRef}
+        d={sweepPath}
+        pathLength="1"
+        fill="none"
+        stroke="#fbbf24"
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray="1"
+        style={{ pointerEvents: 'none', strokeDashoffset: 1, opacity: 0 }}
+      />
 
       {isPda && d?.pdaEditor && (() => {
         const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });

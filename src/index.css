@@ -41,14 +41,4 @@ body {
 
 .animate-pop-in { animation: pop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
-/* ── Test-step transition animation ───────────────── */
-
-@keyframes edge-sweep {
-  0%   { stroke-dashoffset: 1; opacity: 1; }
-  55%  { opacity: 1; }
-  100% { stroke-dashoffset: 0; opacity: 0; }
-}
-.edge-highlighted-sweep {
-  stroke-dashoffset: 1;
-  animation: edge-sweep 0.45s ease-out forwards;
-}
+/* Sweep animation is driven imperatively via Web Animations API in TransitionEdge. */
