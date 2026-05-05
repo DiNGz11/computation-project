@@ -18,6 +18,7 @@ export interface TransitionEdgeData {
   pdaRules?: string[];          // PDA: one formatted string per rule, stacked
   tmSummary?: string;           // TM: "a→b, R" style
   highlighted?: boolean;
+  highlightVersion?: number;    // increments each step so the sweep restarts even on the same edge
   hasReverse?: boolean;         // true when a transition in the opposite direction also exists
   newlyCreated?: boolean;       // auto-open the label editor on first mount
   onUpdateLetters?: (id: string, letters: string[]) => void;
@@ -224,14 +225,15 @@ export default function TransitionEdge(props: EdgeProps) {
 
       {d?.highlighted && (
         <path
+          key={d.highlightVersion ?? 0}
           d={edgePath}
+          pathLength="1"
           fill="none"
           stroke="#fbbf24"
           strokeWidth={4}
           strokeLinecap="round"
-          strokeDasharray="8 6"
-          strokeDashoffset={0}
-          className="edge-highlighted-flow"
+          strokeDasharray="1"
+          className="edge-highlighted-sweep"
           style={{ pointerEvents: 'none' }}
         />
       )}

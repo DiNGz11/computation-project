@@ -43,9 +43,11 @@ body {
 
 /* ── Test-step transition animation ───────────────── */
 
-@keyframes edge-flow {
-  to { stroke-dashoffset: -24; }
+@keyframes edge-sweep {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
 }
-.edge-highlighted-flow {
-  animation: edge-flow 0.45s linear infinite;
+.edge-highlighted-sweep {
+  stroke-dashoffset: 1;
+  animation: edge-sweep 0.45s ease-out forwards;
 }

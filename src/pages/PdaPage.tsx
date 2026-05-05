@@ -53,6 +53,13 @@ function PdaPageInner() {
   const deleteTransition = useMachineStore((s) => s.deleteTransition);
 
   const [highlightStateId, setHighlightStateId] = useState<string | null>(null);
+  const [highlightTransitionId, setHighlightTransitionId] = useState<string | null>(null);
+  const [highlightTransitionVersion, setHighlightTransitionVersion] = useState(0);
+
+  const handleHighlightTransition = useCallback((id: string | null) => {
+    setHighlightTransitionId(id);
+    if (id !== null) setHighlightTransitionVersion((v) => v + 1);
+  }, []);
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingTransitionSource, setPendingTransitionSource] = useState<string | null>(null);
@@ -136,6 +143,8 @@ function PdaPageInner() {
       data: {
         pdaRules: t.rules.map(summarizePda),
         hasReverse: pairSet.has(`${t.to}:${t.from}`),
+        highlighted: highlightTransitionId === t.id,
+        highlightVersion: highlightTransitionId === t.id ? highlightTransitionVersion : undefined,
         onClickEdit: (id: string) => setEditingTransitionId(id),
         pdaEditor:
           editingTransitionId === t.id ? (
@@ -149,7 +158,7 @@ function PdaPageInner() {
           ) : undefined,
       } satisfies TransitionEdgeData,
     }));
-  }, [machine.transitions, editingTransitionId, setPdaRules, deleteTransition, showError]);
+  }, [machine.transitions, editingTransitionId, highlightTransitionId, highlightTransitionVersion, setPdaRules, deleteTransition, showError]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -302,7 +311,11 @@ function PdaPageInner() {
 
         {/* Sidebar */}
         <aside className="w-72 flex-shrink-0 bg-gray-50 border-s border-gray-200 p-3 space-y-3 overflow-y-auto">
-          <PdaTestPanel machine={machine} onHighlightState={setHighlightStateId} />
+          <PdaTestPanel
+            machine={machine}
+            onHighlightState={setHighlightStateId}
+            onHighlightTransition={handleHighlightTransition}
+          />
           <AlertsPanel alerts={alerts} strings={he.machines.pda.alerts} />
         </aside>
       </div>
