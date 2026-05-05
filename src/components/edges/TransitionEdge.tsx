@@ -18,7 +18,6 @@ export interface TransitionEdgeData {
   pdaRules?: string[];          // PDA: one formatted string per rule, stacked
   tmSummary?: string;           // TM: "a→b, R" style
   highlighted?: boolean;
-  highlightVersion?: number;    // increments each step so the sweep restarts even on the same edge
   hasReverse?: boolean;         // true when a transition in the opposite direction also exists
   newlyCreated?: boolean;       // auto-open the label editor on first mount
   onUpdateLetters?: (id: string, letters: string[]) => void;
@@ -52,6 +51,24 @@ export default function TransitionEdge(props: EdgeProps) {
   const [editing, setEditing] = useState(() => !!(d?.newlyCreated && d?.letters !== undefined));
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Sweep animation: fire once each time highlighted goes false→true.
+  const prevHighlightedRef = useRef(false);
+  const [sweepKey, setSweepKey] = useState(0);
+  const [sweepActive, setSweepActive] = useState(false);
+  useEffect(() => {
+    const prev = prevHighlightedRef.current;
+    const curr = d?.highlighted ?? false;
+    prevHighlightedRef.current = curr;
+    if (curr && !prev) {
+      setSweepKey((k) => k + 1);
+      setSweepActive(true);
+    } else if (!curr && sweepActive) {
+      setSweepActive(false);
+    }
+  // sweepActive intentionally omitted — only triggered by highlighted edge transitions
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [d?.highlighted]);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
   useEffect(() => { setDraft((d?.letters ?? []).join(',')); }, [d?.letters]);
@@ -248,9 +265,9 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
-      {d?.highlighted && (
+      {sweepActive && (
         <path
-          key={d.highlightVersion ?? 0}
+          key={sweepKey}
           d={sweepPath}
           pathLength="1"
           fill="none"
