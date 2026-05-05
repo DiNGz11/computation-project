@@ -122,7 +122,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
           {rules.map((rule, i) => {
             const mode = rule.pushMode ?? 'push';
             return (
-              <div key={i} dir="ltr" className="flex items-center gap-1">
+              <div key={i} dir="ltr" className="flex items-start gap-1">
                 <input
                   dir="ltr"
                   value={rule.read}
@@ -130,7 +130,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                   placeholder="⊥"
                   className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-base font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
                 />
-                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0">,</span>
+                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0 pt-2">,</span>
                 <input
                   dir="ltr"
                   value={rule.pop}
@@ -138,8 +138,8 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                   placeholder="⊥"
                   className="flex-1 min-w-0 px-2 py-1.5 border-2 border-gray-200 rounded-lg text-base font-mono text-center outline-none focus:border-violet-400 bg-gray-50 focus:bg-white transition-colors"
                 />
-                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0">/</span>
-                <div className="flex-[2] min-w-0 flex items-center gap-1">
+                <span className="text-gray-400 font-mono text-sm w-2 text-center flex-shrink-0 pt-2">/</span>
+                <div className="flex-[2] min-w-0 flex flex-col gap-1">
                   <div className="flex rounded-lg overflow-hidden border-2 border-gray-200 flex-shrink-0 text-xs font-mono">
                     <button
                       type="button"
@@ -186,7 +186,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                         onChange={(e) => updateRule(i, { push: filterMulti(e.target.value) })}
                         placeholder="חובה"
                         title={showError ? he.errors.emptyPush : undefined}
-                        className={`flex-1 min-w-0 px-2 py-1.5 border-2 rounded-lg text-base font-mono text-center outline-none focus:bg-white transition-colors ${
+                        className={`w-full px-2 py-1.5 border-2 rounded-lg text-base font-mono text-center outline-none focus:bg-white transition-colors ${
                           showError
                             ? 'border-rose-400 bg-rose-50 focus:border-rose-500 placeholder-rose-400'
                             : 'border-gray-200 bg-gray-50 focus:border-violet-400'
@@ -198,7 +198,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                 <button
                   aria-label={he.transition.removeRule}
                   onClick={() => removeRule(i)}
-                  className="w-6 h-6 flex items-center justify-center rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 text-sm font-bold leading-none flex-shrink-0"
+                  className="w-6 h-6 mt-0.5 flex items-center justify-center rounded-full bg-rose-100 hover:bg-rose-200 text-rose-600 text-sm font-bold leading-none flex-shrink-0"
                 >
                   ×
                 </button>

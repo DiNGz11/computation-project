@@ -44,8 +44,9 @@ body {
 /* ── Test-step transition animation ───────────────── */
 
 @keyframes edge-sweep {
-  from { stroke-dashoffset: 1; }
-  to   { stroke-dashoffset: 0; }
+  0%   { stroke-dashoffset: 1; opacity: 1; }
+  55%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
 }
 .edge-highlighted-sweep {
   stroke-dashoffset: 1;
