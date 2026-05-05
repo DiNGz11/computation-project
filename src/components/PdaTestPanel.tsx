@@ -40,7 +40,7 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
   const speedMsRef = useRef(700);
   useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
 
-  const SWEEP_MS = 450;
+  const SWEEP_MS = 600;
 
   const hasStart = machine.states.some((s) => s.isStart);
   const totalSteps = steps.length;

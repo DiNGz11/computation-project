@@ -52,9 +52,15 @@ export default function TransitionEdge(props: EdgeProps) {
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sweep animation: fire once each time highlighted goes false→true.
-  // Driven via Web Animations API on the path ref so neither React's
-  // mount/unmount cycle nor StrictMode double-invocation can re-trigger it.
+  // Sweep animation: paint the edge from source→target, then fade the
+  // colored overlay back to invisible so the edge returns to its base gray.
+  // Total = SWEEP_DRAW_MS (paint) + SWEEP_FADE_MS (fade out).
+  // Fires exactly once per false→true transition of `highlighted`,
+  // driven imperatively via the Web Animations API on the path ref so
+  // React/StrictMode re-renders cannot re-trigger it.
+  const SWEEP_DRAW_MS = 600;
+  const SWEEP_FADE_MS = 250;
+  const SWEEP_TOTAL_MS = SWEEP_DRAW_MS + SWEEP_FADE_MS;
   const prevHighlightedRef = useRef(false);
   const sweepPathRef = useRef<SVGPathElement | null>(null);
   useEffect(() => {
@@ -63,13 +69,14 @@ export default function TransitionEdge(props: EdgeProps) {
     prevHighlightedRef.current = curr;
     if (curr && !prev && sweepPathRef.current) {
       sweepPathRef.current.getAnimations().forEach((a) => a.cancel());
+      const drawFrac = SWEEP_DRAW_MS / SWEEP_TOTAL_MS;
       sweepPathRef.current.animate(
         [
           { strokeDashoffset: 1, opacity: 1, offset: 0 },
-          { opacity: 1, offset: 0.55 },
+          { strokeDashoffset: 0, opacity: 1, offset: drawFrac },
           { strokeDashoffset: 0, opacity: 0, offset: 1 },
         ],
-        { duration: 450, easing: 'ease-out', fill: 'forwards' },
+        { duration: SWEEP_TOTAL_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
       );
     }
   }, [d?.highlighted]);
@@ -211,31 +218,6 @@ export default function TransitionEdge(props: EdgeProps) {
     });
   }
 
-  // Sweep path: same shape as edgePath but endpoint pulled back by the
-  // arrowhead body length so the animated stroke stops before the marker.
-  const ARROW_BODY = 9;
-  let sweepPath = edgePath;
-  if (!isSelfLoop && (nx !== 0 || ny !== 0)) {
-    const sweepTx = effTx + nx * ARROW_BODY;
-    const sweepTy = effTy + ny * ARROW_BODY;
-    if (d?.hasReverse) {
-      const px = -ny, py = nx;
-      const ENDPOINT_SHIFT = 12;
-      const sx2 = effSx + px * ENDPOINT_SHIFT;
-      const sy2 = effSy + py * ENDPOINT_SHIFT;
-      const sTx = sweepTx + px * ENDPOINT_SHIFT;
-      const sTy = sweepTy + py * ENDPOINT_SHIFT;
-      const cX = (sx2 + sTx) / 2 + px * PARALLEL_OFFSET;
-      const cY = (sy2 + sTy) / 2 + py * PARALLEL_OFFSET;
-      sweepPath = `M ${sx2} ${sy2} Q ${cX} ${cY} ${sTx} ${sTy}`;
-    } else {
-      [sweepPath] = getBezierPath({
-        sourceX: effSx, sourceY: effSy, sourcePosition: effSp,
-        targetX: sweepTx, targetY: sweepTy, targetPosition: effTp,
-      });
-    }
-  }
-
   const stroke = d?.highlighted ? '#d97706' : selected ? '#7c3aed' : '#4b5563';
   const strokeWidth = d?.highlighted ? 3 : 2;
   const markerId = `arrowhead-${id}`;
@@ -246,7 +228,7 @@ export default function TransitionEdge(props: EdgeProps) {
 
   return (
     <>
-      {/* Per-edge arrowhead marker — color syncs with stroke */}
+      {/* Per-edge arrowhead marker — color syncs with the base stroke */}
       <defs>
         <marker
           id={markerId}
@@ -269,16 +251,26 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
+      {/* Animated overlay: paints the edge in amber from source→target,
+          then fades back to invisible so the edge returns to its base gray.
+          No marker on this path — the arrowhead stays in BaseEdge so we
+          don't get a stray colored arrow at the target before the line
+          actually arrives there (markers ignore stroke-dasharray). */}
       <path
         ref={sweepPathRef}
-        d={sweepPath}
+        d={edgePath}
         pathLength="1"
         fill="none"
-        stroke="#fbbf24"
-        strokeWidth={4}
+        stroke="#f97316"
+        strokeWidth={3.5}
         strokeLinecap="round"
         strokeDasharray="1"
-        style={{ pointerEvents: 'none', strokeDashoffset: 1, opacity: 0 }}
+        style={{
+          pointerEvents: 'none',
+          strokeDashoffset: 1,
+          opacity: 0,
+          filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.75))',
+        }}
       />
 
       {isPda && d?.pdaEditor && (() => {
