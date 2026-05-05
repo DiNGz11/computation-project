@@ -64,6 +64,10 @@ export default function StateNode({ id, data, selected }: NodeProps) {
         </div>
       )}
 
+      {d.highlighted && (
+        <div className="absolute inset-0 rounded-full bg-amber-400 opacity-40 animate-ping pointer-events-none" />
+      )}
+
       <div
         className={`relative w-20 h-20 rounded-full ${bgColor} ${ringColor} flex items-center justify-center shadow-md cursor-grab transition-all duration-150`}
         onDoubleClick={(e) => {

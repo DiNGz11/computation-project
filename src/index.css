@@ -40,3 +40,12 @@ body {
 }
 
 .animate-pop-in { animation: pop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* ── Test-step transition animation ───────────────── */
+
+@keyframes edge-flow {
+  to { stroke-dashoffset: -24; }
+}
+.edge-highlighted-flow {
+  animation: edge-flow 0.45s linear infinite;
+}

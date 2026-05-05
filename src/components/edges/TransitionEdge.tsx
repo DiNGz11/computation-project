@@ -222,6 +222,20 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
+      {d?.highlighted && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke="#fbbf24"
+          strokeWidth={4}
+          strokeLinecap="round"
+          strokeDasharray="8 6"
+          strokeDashoffset={0}
+          className="edge-highlighted-flow"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
       {isPda && d?.pdaEditor && (() => {
         const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });
         // Bubble sits above the transition label with a gap for the tail,
