@@ -6,6 +6,7 @@ export interface PdaConfig {
   inputIndex: number;
   stack: string[]; // top is the last element
   matchedLetter: string | null;
+  transitionId: string | null; // id of the transition that produced this config
 }
 
 export interface PdaRunResult {
@@ -31,6 +32,7 @@ export function runPda(m: PdaMachine, word: string, maxSteps = 1000): PdaRunResu
     inputIndex: 0,
     stack: [],
     matchedLetter: null,
+    transitionId: null,
   };
   const steps: PdaConfig[] = [initial];
   let cur = initial;
@@ -60,17 +62,19 @@ export function runPda(m: PdaMachine, word: string, maxSteps = 1000): PdaRunResu
 
     const { t, rule } = applicable[0];
     const newStack = [...cur.stack];
-    if ((rule.pushMode ?? 'push') === 'pop') {
+    if ((rule.pushMode ?? 'none') === 'pop') {
       newStack.pop();
-    } else if (rule.push) {
+    } else if ((rule.pushMode ?? 'none') === 'push' && rule.push) {
       for (const ch of rule.push) newStack.push(ch);
     }
+    // pushMode === 'none': stack unchanged
 
     cur = {
       stateId: t.to,
       inputIndex: rule.read ? cur.inputIndex + 1 : cur.inputIndex,
       stack: newStack,
       matchedLetter: rule.read || null,
+      transitionId: t.id,
     };
     steps.push(cur);
 

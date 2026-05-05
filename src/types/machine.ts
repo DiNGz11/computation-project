@@ -19,7 +19,7 @@ export interface DfaTransition {
 export interface PdaRule {
   read: string;
   pop: string;
-  pushMode: 'push' | 'pop';
+  pushMode: 'push' | 'pop' | 'none';
   push: string;
 }
 

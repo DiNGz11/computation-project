@@ -23,7 +23,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
   const [rules, setRules] = useState<PdaRule[]>(
     transition.rules.length > 0
       ? transition.rules
-      : [{ read: '', pop: '', pushMode: 'push', push: '' }],
+      : [{ read: '', pop: '', pushMode: 'none', push: '' }],
   );
   const cardRef = useRef<HTMLDivElement>(null);
   const rulesRef = useRef(rules);
@@ -35,8 +35,8 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
       .map((r) => ({
         read: r.read.trim(),
         pop: r.pop.trim(),
-        pushMode: r.pushMode ?? 'push',
-        push: (r.pushMode ?? 'push') === 'pop' ? '' : r.push.trim(),
+        pushMode: r.pushMode ?? 'none',
+        push: r.pushMode === 'push' ? r.push.trim() : '',
       }));
 
   const commit = (next: PdaRule[]) => {
@@ -50,7 +50,7 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
   const updateRule = (i: number, patch: Partial<PdaRule>) =>
     commit(rules.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   const addRule = () =>
-    commit([...rules, { read: '', pop: '', pushMode: 'push', push: '' }]);
+    commit([...rules, { read: '', pop: '', pushMode: 'none', push: '' }]);
   const removeRule = (i: number) => commit(rules.filter((_, idx) => idx !== i));
 
   const attemptClose = () => {
@@ -162,6 +162,17 @@ export default function PdaTransitionPopover({ transition, onSave, onDelete, onC
                       }`}
                     >
                       POP
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateRule(i, { pushMode: 'none', push: '' })}
+                      className={`px-2 py-1.5 border-l border-gray-200 transition-colors ${
+                        mode === 'none'
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      {he.transition.pdaNoAction}
                     </button>
                   </div>
                   {mode === 'push' && (() => {

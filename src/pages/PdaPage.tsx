@@ -30,13 +30,14 @@ export default function PdaPage() {
   );
 }
 
-function summarizePda(t: { read: string; pop: string; pushMode?: 'push' | 'pop'; push: string }) {
+function summarizePda(t: { read: string; pop: string; pushMode?: 'push' | 'pop' | 'none'; push: string }) {
   const r = t.read || '⊥';
   const p = t.pop || '⊥';
+  const mode = t.pushMode ?? 'none';
   const action =
-    (t.pushMode ?? 'push') === 'pop'
-      ? 'POP'
-      : `PUSH ${t.push || '⊥'}`;
+    mode === 'pop' ? 'POP' :
+    mode === 'push' ? `PUSH ${t.push || '⊥'}` :
+    he.transition.pdaNoAction;
   return `${r}, ${p} / ${action}`;
 }
 

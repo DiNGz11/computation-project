@@ -50,6 +50,7 @@ export const he = {
     addRule: 'הוסיפו כלל',
     removeRule: 'מחקו כלל',
     pdaStackOp: 'פעולה',
+    pdaNoAction: 'לל"ש',
   },
   test: {
     inputLabel: 'הקלידו מילה לבדיקה',
