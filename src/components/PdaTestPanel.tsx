@@ -6,6 +6,7 @@ import { runPda, type PdaConfig } from '../logic/pda';
 interface Props {
   machine: PdaMachine;
   onHighlightState: (id: string | null) => void;
+  onHighlightTransition: (id: string | null) => void;
 }
 
 const ChevronRight = () => (
@@ -20,7 +21,7 @@ const ChevronLeft = () => (
   </svg>
 );
 
-export default function PdaTestPanel({ machine, onHighlightState }: Props) {
+export default function PdaTestPanel({ machine, onHighlightState, onHighlightTransition }: Props) {
   const [word, setWord] = useState('');
   const [steps, setSteps] = useState<PdaConfig[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -39,12 +40,24 @@ export default function PdaTestPanel({ machine, onHighlightState }: Props) {
   const atEnd = hasSteps && stepIndex >= totalSteps - 1;
   const atStart = stepIndex <= 0;
 
-  const stopHighlight = useCallback(() => onHighlightState(null), [onHighlightState]);
+  const stopHighlight = useCallback(() => {
+    onHighlightState(null);
+    onHighlightTransition(null);
+  }, [onHighlightState, onHighlightTransition]);
+
+  const SWEEP_MS = 450;
 
   useEffect(() => {
     if (!currentStep) { stopHighlight(); return; }
-    onHighlightState(currentStep.stateId);
-  }, [stepIndex, steps, currentStep, onHighlightState, stopHighlight]);
+    onHighlightState(null);
+    onHighlightTransition(currentStep.transitionId);
+    if (!currentStep.transitionId) {
+      onHighlightState(currentStep.stateId);
+      return;
+    }
+    const t = window.setTimeout(() => onHighlightState(currentStep.stateId), SWEEP_MS);
+    return () => window.clearTimeout(t);
+  }, [stepIndex, steps, currentStep, onHighlightState, onHighlightTransition, stopHighlight]);
 
   const showResult = useCallback((resAccepted: boolean, resStuck: boolean) => {
     setAccepted(resAccepted);

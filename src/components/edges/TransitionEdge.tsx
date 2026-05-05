@@ -190,6 +190,31 @@ export default function TransitionEdge(props: EdgeProps) {
     });
   }
 
+  // Sweep path: same shape as edgePath but endpoint pulled back by the
+  // arrowhead body length so the animated stroke stops before the marker.
+  const ARROW_BODY = 9;
+  let sweepPath = edgePath;
+  if (!isSelfLoop && (nx !== 0 || ny !== 0)) {
+    const sweepTx = effTx + nx * ARROW_BODY;
+    const sweepTy = effTy + ny * ARROW_BODY;
+    if (d?.hasReverse) {
+      const px = -ny, py = nx;
+      const ENDPOINT_SHIFT = 12;
+      const sx2 = effSx + px * ENDPOINT_SHIFT;
+      const sy2 = effSy + py * ENDPOINT_SHIFT;
+      const sTx = sweepTx + px * ENDPOINT_SHIFT;
+      const sTy = sweepTy + py * ENDPOINT_SHIFT;
+      const cX = (sx2 + sTx) / 2 + px * PARALLEL_OFFSET;
+      const cY = (sy2 + sTy) / 2 + py * PARALLEL_OFFSET;
+      sweepPath = `M ${sx2} ${sy2} Q ${cX} ${cY} ${sTx} ${sTy}`;
+    } else {
+      [sweepPath] = getBezierPath({
+        sourceX: effSx, sourceY: effSy, sourcePosition: effSp,
+        targetX: sweepTx, targetY: sweepTy, targetPosition: effTp,
+      });
+    }
+  }
+
   const stroke = d?.highlighted ? '#d97706' : selected ? '#7c3aed' : '#4b5563';
   const strokeWidth = d?.highlighted ? 3 : 2;
   const markerId = `arrowhead-${id}`;
@@ -226,7 +251,7 @@ export default function TransitionEdge(props: EdgeProps) {
       {d?.highlighted && (
         <path
           key={d.highlightVersion ?? 0}
-          d={edgePath}
+          d={sweepPath}
           pathLength="1"
           fill="none"
           stroke="#fbbf24"
