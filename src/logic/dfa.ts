@@ -6,6 +6,7 @@ export interface DfaStep {
   letterIndex: number;
   matchedLetter: string | null;
   stuck: boolean;
+  transitionId: string | null;
 }
 
 export interface DfaRunResult {
@@ -41,20 +42,24 @@ export function runDfa(m: DfaMachine, word: string): DfaRunResult {
     letterIndex: 0,
     matchedLetter: null,
     stuck: false,
+    transitionId: null,
   }];
   let currentStates = new Set<string>([start.id]);
 
   for (let i = 0; i < word.length; i++) {
     const letter = word[i];
     const nextStates = new Set<string>();
+    let firstTransitionId: string | null = null;
     for (const stateId of currentStates) {
-      m.transitions
-        .filter((t) => t.from === stateId && t.letters.includes(letter))
-        .forEach((t) => nextStates.add(t.to));
+      const matched = m.transitions.filter((t) => t.from === stateId && t.letters.includes(letter));
+      for (const t of matched) {
+        nextStates.add(t.to);
+        if (firstTransitionId === null) firstTransitionId = t.id;
+      }
     }
     // All branches died — stuck
     if (nextStates.size === 0) {
-      steps.push({ stateIds: [...currentStates], letterIndex: i, matchedLetter: letter, stuck: true });
+      steps.push({ stateIds: [...currentStates], letterIndex: i, matchedLetter: letter, stuck: true, transitionId: null });
       return { steps, accepted: false, stuck: true };
     }
     currentStates = nextStates;
@@ -63,6 +68,7 @@ export function runDfa(m: DfaMachine, word: string): DfaRunResult {
       letterIndex: i + 1,
       matchedLetter: letter,
       stuck: false,
+      transitionId: firstTransitionId,
     });
   }
 

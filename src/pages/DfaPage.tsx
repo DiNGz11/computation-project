@@ -31,8 +31,7 @@ export default function DfaPage() {
 
 interface Highlight {
   stateIds: string[];
-  prevStateIds: string[];
-  letter: string | null;
+  transitionId: string | null;
 }
 
 function DfaPageInner() {
@@ -48,7 +47,7 @@ function DfaPageInner() {
   const deleteTransition = useMachineStore((s) => s.deleteTransition);
 
   const [highlight, setHighlight] = useState<Highlight>({
-    stateIds: [], prevStateIds: [], letter: null,
+    stateIds: [], transitionId: null,
   });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingTransitionSource, setPendingTransitionSource] = useState<string | null>(null);
@@ -74,13 +73,12 @@ function DfaPageInner() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const onHighlight = useCallback(
-    (stateIds: string[] | null, prevStateIds: string[] | null, letter: string | null) =>
-      setHighlight({
-        stateIds: stateIds ?? [],
-        prevStateIds: prevStateIds ?? [],
-        letter,
-      }),
+  const onHighlightStates = useCallback(
+    (ids: string[] | null) => setHighlight((prev) => ({ ...prev, stateIds: ids ?? [] })),
+    [],
+  );
+  const onHighlightTransition = useCallback(
+    (id: string | null) => setHighlight((prev) => ({ ...prev, transitionId: id })),
     [],
   );
 
@@ -135,7 +133,7 @@ function DfaPageInner() {
         } satisfies StateNodeData,
       })),
     [
-      machine.states, highlight.stateId, pendingTransitionSource,
+      machine.states, highlight.stateIds, pendingTransitionSource,
       handleRename, handleSetStart, handleToggleAccepting, handleDeleteState, handleAddTransition,
     ],
   );
@@ -144,11 +142,7 @@ function DfaPageInner() {
     // Pre-build a set of all existing "from:to" pairs to detect bidirectional transitions
     const pairSet = new Set(machine.transitions.map((t) => `${t.from}:${t.to}`));
     return machine.transitions.map((t) => {
-      const isHighlighted =
-        highlight.letter !== null &&
-        t.letters.includes(highlight.letter) &&
-        highlight.prevStateIds.includes(t.from) &&
-        highlight.stateIds.includes(t.to);
+      const isHighlighted = t.id === highlight.transitionId;
       const hasReverse = pairSet.has(`${t.to}:${t.from}`);
       return {
         id: t.id,
@@ -325,7 +319,7 @@ function DfaPageInner() {
 
         {/* Sidebar — test panel + alerts only */}
         <aside className="w-72 flex-shrink-0 bg-gray-50 border-s border-gray-200 p-3 space-y-3 overflow-y-auto">
-          <DfaTestPanel machine={machine} onHighlight={onHighlight} />
+          <DfaTestPanel machine={machine} onHighlightStates={onHighlightStates} onHighlightTransition={onHighlightTransition} />
           <AlertsPanel alerts={alerts} strings={he.machines.dfa.alerts} />
         </aside>
       </div>
