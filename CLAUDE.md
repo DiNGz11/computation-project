@@ -69,6 +69,9 @@ src/
   set-as-start, and delete (with confirmation). Shown in sidebar when a state is
   selected; closed by clicking ×, clicking another state, or pressing Escape.
 
+## Workflow
+- After every code change, run `git add`, `git commit`, and `git push` before reporting the task done.
+
 ## Code style
 - TypeScript strict mode on
 - Functional components + hooks only; no class components
