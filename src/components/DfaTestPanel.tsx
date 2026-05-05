@@ -5,7 +5,8 @@ import { runDfa, type DfaStep } from '../logic/dfa';
 
 interface Props {
   machine: DfaMachine;
-  onHighlight: (stateIds: string[] | null, prevStateIds: string[] | null, letter: string | null) => void;
+  onHighlightStates: (ids: string[] | null) => void;
+  onHighlightTransition: (id: string | null) => void;
 }
 
 const ChevronRight = () => (
@@ -20,7 +21,7 @@ const ChevronLeft = () => (
   </svg>
 );
 
-export default function DfaTestPanel({ machine, onHighlight }: Props) {
+export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTransition }: Props) {
   const [word, setWord] = useState('');
   const [steps, setSteps] = useState<DfaStep[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -28,23 +29,56 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
   const [stuck, setStuck] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [speedMs, setSpeedMs] = useState(700);
+  const [displayedStepIndex, setDisplayedStepIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const displayTimeoutRef = useRef<number | null>(null);
+  const isSteppingBackRef = useRef(false);
+  const speedMsRef = useRef(700);
+  useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
+
+  const SWEEP_MS = 450;
 
   const hasStart = machine.states.some((s) => s.isStart);
   const totalSteps = steps.length;
-  const currentStep = steps[stepIndex];
+  const currentStep = steps[stepIndex];           // drives transition highlight
+  const displayedStep = steps[displayedStepIndex]; // drives tape / state label
 
-  const stopHighlight = useCallback(() => onHighlight(null, null, null), [onHighlight]);
+  const stopHighlight = useCallback(() => {
+    if (displayTimeoutRef.current) {
+      window.clearTimeout(displayTimeoutRef.current);
+      displayTimeoutRef.current = null;
+    }
+    onHighlightStates(null);
+    onHighlightTransition(null);
+  }, [onHighlightStates, onHighlightTransition]);
 
   useEffect(() => {
-    if (!currentStep) { stopHighlight(); return; }
-    const prev = steps[stepIndex - 1];
-    if (prev && currentStep.matchedLetter) {
-      onHighlight(currentStep.stateIds, prev.stateIds, currentStep.matchedLetter);
-    } else {
-      onHighlight(currentStep.stateIds, null, null);
-    }
-  }, [stepIndex, steps, currentStep, onHighlight, stopHighlight]);
+    if (!currentStep) { stopHighlight(); setDisplayedStepIndex(0); return; }
+
+    const isBack = isSteppingBackRef.current;
+    isSteppingBackRef.current = false;
+
+    onHighlightStates(null);
+    onHighlightTransition(currentStep.transitionId);
+
+    const delay =
+      !isBack && currentStep.transitionId && speedMsRef.current >= SWEEP_MS
+        ? SWEEP_MS
+        : 0;
+
+    displayTimeoutRef.current = window.setTimeout(() => {
+      displayTimeoutRef.current = null;
+      onHighlightStates(currentStep.stateIds);
+      setDisplayedStepIndex(stepIndex);
+    }, delay);
+
+    return () => {
+      if (displayTimeoutRef.current) {
+        window.clearTimeout(displayTimeoutRef.current);
+        displayTimeoutRef.current = null;
+      }
+    };
+  }, [stepIndex, steps, currentStep, onHighlightStates, onHighlightTransition, stopHighlight]);
 
   const showResult = useCallback((stepList: DfaStep[], idx: number) => {
     const last = stepList[idx];
@@ -62,9 +96,11 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
 
   const start = () => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (displayTimeoutRef.current) window.clearTimeout(displayTimeoutRef.current);
     const result = runDfa(machine, word);
     setSteps(result.steps);
     setStepIndex(0);
+    setDisplayedStepIndex(0);
     setAccepted(null);
     setStuck(false);
     setPlaying(true);
@@ -72,9 +108,11 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
 
   const reset = () => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (displayTimeoutRef.current) window.clearTimeout(displayTimeoutRef.current);
     setPlaying(false);
     setSteps([]);
     setStepIndex(0);
+    setDisplayedStepIndex(0);
     setAccepted(null);
     setStuck(false);
     stopHighlight();
@@ -92,13 +130,16 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
     const next = stepIndex + 1;
     setStepIndex(next);
     if (next >= totalSteps - 1) {
-      stopHighlight();
-      showResult(steps, totalSteps - 1);
+      timerRef.current = window.setTimeout(
+        () => showResult(steps, totalSteps - 1),
+        speedMsRef.current >= SWEEP_MS ? SWEEP_MS : 0,
+      );
     }
   };
 
   const stepBack = () => {
     if (playing || stepIndex <= 0) return;
+    isSteppingBackRef.current = true;
     setAccepted(null);
     setStuck(false);
     setStepIndex((i) => i - 1);
@@ -124,7 +165,7 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
   const atEnd = hasSteps && stepIndex >= totalSteps - 1;
   const atStart = stepIndex <= 0;
 
-  const currentStateLabels = currentStep?.stateIds
+  const displayedStateLabels = displayedStep?.stateIds
     .map((id) => machine.states.find((s) => s.id === id)?.label ?? id)
     .join(', ') ?? '';
 
@@ -242,9 +283,9 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
               <span
                 key={i}
                 className={
-                  i < (currentStep?.letterIndex ?? 0)
+                  i < (displayedStep?.letterIndex ?? 0)
                     ? 'text-emerald-600'
-                    : i === (currentStep?.letterIndex ?? 0)
+                    : i === (displayedStep?.letterIndex ?? 0)
                       ? 'bg-amber-300 px-0.5 rounded-md'
                       : 'text-gray-400'
                 }
@@ -257,10 +298,10 @@ export default function DfaTestPanel({ machine, onHighlight }: Props) {
         )}
 
         {/* Current state display */}
-        {hasSteps && currentStateLabels && (
+        {hasSteps && displayedStateLabels && (
           <div className="flex items-center gap-2 text-xs bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-1.5">
             <span className="text-indigo-500 font-medium">{he.test.currentState}:</span>
-            <span className="font-bold text-indigo-800">{currentStateLabels}</span>
+            <span className="font-bold text-indigo-800">{displayedStateLabels}</span>
           </div>
         )}
 
