@@ -31,32 +31,61 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
   const [speedMs, setSpeedMs] = useState(700);
   const [runAccepted, setRunAccepted] = useState(false);
   const [runStuck, setRunStuck] = useState(false);
+  // displayedStepIndex drives the tape/stack/state-label UI and lags behind
+  // stepIndex by SWEEP_MS so the display only updates when the sweep arrives.
+  const [displayedStepIndex, setDisplayedStepIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
+  const displayTimeoutRef = useRef<number | null>(null);
+  const isSteppingBackRef = useRef(false);
+  const speedMsRef = useRef(700);
+  useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
+
+  const SWEEP_MS = 450;
 
   const hasStart = machine.states.some((s) => s.isStart);
   const totalSteps = steps.length;
-  const currentStep = steps[stepIndex];
+  const currentStep = steps[stepIndex];          // drives transition highlight
+  const displayedStep = steps[displayedStepIndex]; // drives tape / stack / label
   const hasSteps = steps.length > 0;
   const atEnd = hasSteps && stepIndex >= totalSteps - 1;
   const atStart = stepIndex <= 0;
 
   const stopHighlight = useCallback(() => {
+    if (displayTimeoutRef.current) {
+      window.clearTimeout(displayTimeoutRef.current);
+      displayTimeoutRef.current = null;
+    }
     onHighlightState(null);
     onHighlightTransition(null);
   }, [onHighlightState, onHighlightTransition]);
 
-  const SWEEP_MS = 450;
-
   useEffect(() => {
-    if (!currentStep) { stopHighlight(); return; }
+    if (!currentStep) { stopHighlight(); setDisplayedStepIndex(0); return; }
+
+    const isBack = isSteppingBackRef.current;
+    isSteppingBackRef.current = false;
+
     onHighlightState(null);
     onHighlightTransition(currentStep.transitionId);
-    if (!currentStep.transitionId) {
+
+    // Skip delay when stepping back or when playback is faster than the sweep
+    const delay =
+      !isBack && currentStep.transitionId && speedMsRef.current >= SWEEP_MS
+        ? SWEEP_MS
+        : 0;
+
+    displayTimeoutRef.current = window.setTimeout(() => {
+      displayTimeoutRef.current = null;
       onHighlightState(currentStep.stateId);
-      return;
-    }
-    const t = window.setTimeout(() => onHighlightState(currentStep.stateId), SWEEP_MS);
-    return () => window.clearTimeout(t);
+      setDisplayedStepIndex(stepIndex);
+    }, delay);
+
+    return () => {
+      if (displayTimeoutRef.current) {
+        window.clearTimeout(displayTimeoutRef.current);
+        displayTimeoutRef.current = null;
+      }
+    };
   }, [stepIndex, steps, currentStep, onHighlightState, onHighlightTransition, stopHighlight]);
 
   const showResult = useCallback((resAccepted: boolean, resStuck: boolean) => {
@@ -66,9 +95,11 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
 
   const start = () => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (displayTimeoutRef.current) window.clearTimeout(displayTimeoutRef.current);
     const result = runPda(machine, word);
     setSteps(result.steps);
     setStepIndex(0);
+    setDisplayedStepIndex(0);
     setAccepted(null);
     setStuck(false);
     setRunAccepted(result.accepted);
@@ -78,9 +109,11 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
 
   const reset = () => {
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (displayTimeoutRef.current) window.clearTimeout(displayTimeoutRef.current);
     setPlaying(false);
     setSteps([]);
     setStepIndex(0);
+    setDisplayedStepIndex(0);
     setAccepted(null);
     setStuck(false);
     stopHighlight();
@@ -97,14 +130,19 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
     if (playing || stepIndex >= totalSteps - 1) return;
     const next = stepIndex + 1;
     setStepIndex(next);
+    // Show result after the display delay so it appears together with the
+    // stack/tape update rather than before the sweep completes.
     if (next >= totalSteps - 1) {
-      stopHighlight();
-      showResult(runAccepted, runStuck);
+      timerRef.current = window.setTimeout(
+        () => showResult(runAccepted, runStuck),
+        speedMsRef.current >= SWEEP_MS ? SWEEP_MS : 0,
+      );
     }
   };
 
   const stepBack = () => {
     if (playing || stepIndex <= 0) return;
+    isSteppingBackRef.current = true;
     setAccepted(null);
     setStuck(false);
     setStepIndex((i) => i - 1);
@@ -126,8 +164,8 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
 
   useEffect(() => () => stopHighlight(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentStateLabel = currentStep
-    ? (machine.states.find((s) => s.id === currentStep.stateId)?.label ?? currentStep.stateId)
+  const currentStateLabel = displayedStep
+    ? (machine.states.find((s) => s.id === displayedStep.stateId)?.label ?? displayedStep.stateId)
     : '';
 
   return (
@@ -241,9 +279,9 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
               <span
                 key={i}
                 className={
-                  i < (currentStep?.inputIndex ?? 0)
+                  i < (displayedStep?.inputIndex ?? 0)
                     ? 'text-emerald-600'
-                    : i === (currentStep?.inputIndex ?? 0)
+                    : i === (displayedStep?.inputIndex ?? 0)
                       ? 'bg-amber-300 px-0.5 rounded-md'
                       : 'text-gray-400'
                 }
@@ -256,15 +294,15 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
         )}
 
         {/* Stack display */}
-        {hasSteps && currentStep && (
+        {hasSteps && displayedStep && (
           <div dir="ltr" className="animate-fade-up bg-gray-50 border-2 border-gray-200 rounded-xl p-2.5">
             <div className="flex items-baseline justify-between mb-2">
               <div className="text-[10px] text-gray-400 font-sans">{he.test.stack}</div>
               <div className="text-[10px] text-violet-500 font-mono">
-                [{currentStep.stack.join(',')}] · {currentStep.stack.length}
+                [{displayedStep.stack.join(',')}] · {displayedStep.stack.length}
               </div>
             </div>
-            {currentStep.stack.length === 0 ? (
+            {displayedStep.stack.length === 0 ? (
               <div style={{ textAlign: 'center' }}>
                 <div
                   style={{
@@ -300,11 +338,11 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
                         }}
                       />
                     </tr>
-                    {currentStep.stack.slice().reverse().map((c, i) => {
-                      const stackPos = currentStep.stack.length - 1 - i;
+                    {displayedStep.stack.slice().reverse().map((c, i) => {
+                      const stackPos = displayedStep.stack.length - 1 - i;
                       const isTop = i === 0;
                       return (
-                        <tr key={`s${stepIndex}-p${stackPos}`}>
+                        <tr key={`s${displayedStepIndex}-p${stackPos}`}>
                           <td
                             style={{
                               width: '40px',
