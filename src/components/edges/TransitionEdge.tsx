@@ -54,24 +54,46 @@ export default function TransitionEdge(props: EdgeProps) {
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sweep animation: paint the edge amber from source→target, then fade out.
-  // sweepKey is a counter incremented by the parent on each step. Dep-changes
-  // are NOT double-invoked by React StrictMode (only mount effects are), so
-  // this fires exactly once per transition — no rAF debounce needed.
+  // Sweep animation: draw the edge in amber from source→target, then fade out.
+  // Uses CSS transitions on stroke-dashoffset (actual pixel length from
+  // getTotalLength) — more reliable than CSS keyframes on SVG dasharray.
+  //
+  // lastAnimatedKeyRef prevents double-play: React StrictMode re-runs mount
+  // effects (setup→cleanup→setup) even when deps haven't changed. The ref
+  // persists through the StrictMode cleanup, so the second invocation sees
+  // the already-recorded key and bails out without playing again.
   const sweepPathRef = useRef<SVGPathElement | null>(null);
+  const lastAnimatedKeyRef = useRef(0);
   useEffect(() => {
-    if (!d?.sweepKey) return;        // 0 / undefined = idle, skip
-    const drawMs = d?.sweepDuration ?? 600;
+    const key = d?.sweepKey ?? 0;
+    if (!key || key === lastAnimatedKeyRef.current) return;
+    lastAnimatedKeyRef.current = key;
+
     const el = sweepPathRef.current;
     if (!el) return;
-    el.style.animation = '';
-    el.getBoundingClientRect();      // force reflow so browser sees the reset
-    el.style.animation = [
-      `edge-draw ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-      `edge-fade 200ms ${drawMs}ms ease-out forwards`,
-    ].join(', ');
-  // sweepDuration is read inside but intentionally not listed — it's set
-  // in the same render as sweepKey so it's always current when the effect runs.
+
+    const len = el.getTotalLength();
+    const drawMs = d?.sweepDuration ?? 600;
+
+    // Instant reset to hidden start-of-path state
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    el.style.strokeDasharray = `${len}`;
+    el.style.strokeDashoffset = `${len}`;
+    void el.getBoundingClientRect(); // force reflow so transition sees the change
+
+    // Draw phase: dashoffset shrinks from len→0, revealing the line
+    el.style.transition = `stroke-dashoffset ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+    el.style.strokeDashoffset = '0';
+
+    // Fade phase: kick off after draw completes
+    const fadeTimer = window.setTimeout(() => {
+      el.style.transition = 'opacity 200ms ease-out';
+      el.style.opacity = '0';
+    }, drawMs);
+
+    return () => window.clearTimeout(fadeTimer);
+  // sweepDuration not listed — always set in same render as sweepKey
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d?.sweepKey]);
 
@@ -253,12 +275,10 @@ export default function TransitionEdge(props: EdgeProps) {
       <path
         ref={sweepPathRef}
         d={edgePath}
-        pathLength="1"
         fill="none"
         stroke="#f97316"
         strokeWidth={3.5}
         strokeLinecap="round"
-        strokeDasharray="0 1"
         className="sweep-overlay"
       />
 
