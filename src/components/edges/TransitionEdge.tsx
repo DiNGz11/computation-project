@@ -54,49 +54,6 @@ export default function TransitionEdge(props: EdgeProps) {
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sweep animation: draw the edge in amber from source→target, then fade out.
-  // Uses CSS transitions on stroke-dashoffset (actual pixel length from
-  // getTotalLength) — more reliable than CSS keyframes on SVG dasharray.
-  //
-  // lastAnimatedKeyRef prevents double-play: React StrictMode re-runs mount
-  // effects (setup→cleanup→setup) even when deps haven't changed. The ref
-  // persists through the StrictMode cleanup, so the second invocation sees
-  // the already-recorded key and bails out without playing again.
-  const sweepPathRef = useRef<SVGPathElement | null>(null);
-  const lastAnimatedKeyRef = useRef(0);
-  useEffect(() => {
-    const key = d?.sweepKey ?? 0;
-    if (!key || key === lastAnimatedKeyRef.current) return;
-    lastAnimatedKeyRef.current = key;
-
-    const el = sweepPathRef.current;
-    if (!el) return;
-
-    const len = el.getTotalLength();
-    const drawMs = d?.sweepDuration ?? 600;
-
-    // Instant reset to hidden start-of-path state
-    el.style.transition = 'none';
-    el.style.opacity = '1';
-    el.style.strokeDasharray = `${len}`;
-    el.style.strokeDashoffset = `${len}`;
-    void el.getBoundingClientRect(); // force reflow so transition sees the change
-
-    // Draw phase: dashoffset shrinks from len→0, revealing the line
-    el.style.transition = `stroke-dashoffset ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-    el.style.strokeDashoffset = '0';
-
-    // Fade phase: kick off after draw completes
-    const fadeTimer = window.setTimeout(() => {
-      el.style.transition = 'opacity 200ms ease-out';
-      el.style.opacity = '0';
-    }, drawMs);
-
-    return () => window.clearTimeout(fadeTimer);
-  // sweepDuration not listed — always set in same render as sweepKey
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d?.sweepKey]);
-
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
   useEffect(() => { setDraft((d?.letters ?? []).join(',')); }, [d?.letters]);
 
@@ -268,19 +225,16 @@ export default function TransitionEdge(props: EdgeProps) {
       />
 
       {/* Animated overlay: paints the edge in amber from source→target,
-          then fades back to invisible so the edge returns to its base gray.
-          Base (idle) state is in .sweep-overlay CSS class. The animation
-          is applied imperatively so 'animation' is never in the React style
-          prop and React cannot reset it on re-render. */}
-      <path
-        ref={sweepPathRef}
-        d={edgePath}
-        fill="none"
-        stroke="#f97316"
-        strokeWidth={3.5}
-        strokeLinecap="round"
-        className="sweep-overlay"
-      />
+          then fades. Keyed on sweepKey so each transition gets a fresh
+          DOM element and its own animation lifecycle — no shared refs,
+          no double-play from StrictMode or remounts. */}
+      {d?.sweepKey ? (
+        <SweepOverlay
+          key={d.sweepKey}
+          edgePath={edgePath}
+          drawMs={d.sweepDuration ?? 600}
+        />
+      ) : null}
 
       {isPda && d?.pdaEditor && (() => {
         const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });
@@ -395,5 +349,59 @@ export default function TransitionEdge(props: EdgeProps) {
         </div>
       </EdgeLabelRenderer>
     </>
+  );
+}
+
+// Sweep overlay: a fresh DOM element per transition (parent uses
+// key={sweepKey} so React mounts a new instance for each sweep).
+//
+// Why a separate component? Mounting a new element is the only way to
+// guarantee a single, isolated animation per transition. The previous
+// shared-element approach was prone to double-play because the parent's
+// effect could fire twice (StrictMode, prop churn) on the same DOM node.
+//
+// Why rAF for the transition trigger? Setting transition + the new
+// dashoffset value back-to-back lets some browsers coalesce them — the
+// browser only ever "sees" the final state and skips the animation.
+// Deferring the trigger to the next frame guarantees the browser commits
+// the hidden start state first, so the transition actually plays.
+function SweepOverlay({ edgePath, drawMs }: { edgePath: string; drawMs: number }) {
+  const ref = useRef<SVGPathElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const len = el.getTotalLength();
+    el.style.strokeDasharray = String(len);
+    el.style.strokeDashoffset = String(len);
+    el.style.opacity = '1';
+
+    let raf: number | null = requestAnimationFrame(() => {
+      raf = null;
+      el.style.transition = `stroke-dashoffset ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+      el.style.strokeDashoffset = '0';
+    });
+
+    const fadeTimer = window.setTimeout(() => {
+      el.style.transition = 'opacity 200ms ease-out';
+      el.style.opacity = '0';
+    }, drawMs);
+
+    return () => {
+      if (raf !== null) cancelAnimationFrame(raf);
+      window.clearTimeout(fadeTimer);
+    };
+  }, [drawMs, edgePath]);
+
+  return (
+    <path
+      ref={ref}
+      d={edgePath}
+      fill="none"
+      stroke="#f97316"
+      strokeWidth={3.5}
+      strokeLinecap="round"
+      className="sweep-overlay"
+    />
   );
 }
