@@ -19,6 +19,7 @@ export interface TransitionEdgeData {
   tmSummary?: string;           // TM: "a→b, R" style
   highlighted?: boolean;
   sweepDuration?: number;       // draw-phase duration in ms, passed from the test panel speed
+  sweepKey?: number;            // increments each time this edge should animate; dep-change not doubled by StrictMode
   hasReverse?: boolean;         // true when a transition in the opposite direction also exists
   newlyCreated?: boolean;       // auto-open the label editor on first mount
   onUpdateLetters?: (id: string, letters: string[]) => void;
@@ -53,46 +54,26 @@ export default function TransitionEdge(props: EdgeProps) {
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sweep animation: paint the edge from source→target, then fade back to gray.
-  // CSS keyframes (edge-draw + edge-fade) are applied imperatively so the
-  // duration can match the speed slider. We set el.style.animation directly —
-  // React won't clobber it because 'animation' is not in the JSX style prop.
-  // rAF debounce: if the effect fires more than once per frame (React/StrictMode
-  // double-renders), the first rAF is cancelled in cleanup; the second invocation
-  // sees prevHighlightedRef.current===true and skips entirely.
-  const prevHighlightedRef = useRef(false);
+  // Sweep animation: paint the edge amber from source→target, then fade out.
+  // sweepKey is a counter incremented by the parent on each step. Dep-changes
+  // are NOT double-invoked by React StrictMode (only mount effects are), so
+  // this fires exactly once per transition — no rAF debounce needed.
   const sweepPathRef = useRef<SVGPathElement | null>(null);
-  const sweepRafRef = useRef<number | null>(null);
   useEffect(() => {
-    const prev = prevHighlightedRef.current;
-    const curr = d?.highlighted ?? false;
-    prevHighlightedRef.current = curr;
-    if (curr && !prev) {
-      const drawMs = d?.sweepDuration ?? 600;
-      if (sweepRafRef.current !== null) cancelAnimationFrame(sweepRafRef.current);
-      sweepRafRef.current = requestAnimationFrame(() => {
-        sweepRafRef.current = null;
-        const el = sweepPathRef.current;
-        if (!el) return;
-        // Reset to idle state, force a reflow so the browser registers the
-        // change, then apply the two-phase animation.
-        el.style.animation = '';
-        el.getBoundingClientRect();
-        el.style.animation = [
-          `edge-draw ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-          `edge-fade 200ms ${drawMs}ms ease-out forwards`,
-        ].join(', ');
-      });
-      return () => {
-        if (sweepRafRef.current !== null) {
-          cancelAnimationFrame(sweepRafRef.current);
-          sweepRafRef.current = null;
-        }
-      };
-    }
-  // d?.sweepDuration intentionally omitted: only triggered by highlighted transition
+    if (!d?.sweepKey) return;        // 0 / undefined = idle, skip
+    const drawMs = d?.sweepDuration ?? 600;
+    const el = sweepPathRef.current;
+    if (!el) return;
+    el.style.animation = '';
+    el.getBoundingClientRect();      // force reflow so browser sees the reset
+    el.style.animation = [
+      `edge-draw ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+      `edge-fade 200ms ${drawMs}ms ease-out forwards`,
+    ].join(', ');
+  // sweepDuration is read inside but intentionally not listed — it's set
+  // in the same render as sweepKey so it's always current when the effect runs.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [d?.highlighted]);
+  }, [d?.sweepKey]);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
   useEffect(() => { setDraft((d?.letters ?? []).join(',')); }, [d?.letters]);
@@ -277,7 +258,7 @@ export default function TransitionEdge(props: EdgeProps) {
         stroke="#f97316"
         strokeWidth={3.5}
         strokeLinecap="round"
-        strokeDasharray="1"
+        strokeDasharray="0 1"
         className="sweep-overlay"
       />
 
