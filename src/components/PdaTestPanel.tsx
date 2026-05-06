@@ -4,6 +4,9 @@ import type { PdaMachine } from '../types/machine';
 import { runPda, type PdaConfig } from '../logic/pda';
 import type { SweepTrigger } from './edges/TransitionEdge';
 
+let _sweepSeq = 0;
+const nextSweepToken = () => String(++_sweepSeq);
+
 interface Props {
   machine: PdaMachine;
   onHighlightState: (id: string | null) => void;
@@ -76,7 +79,7 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
       activeSweepRef.current = { stepIndex, transitionId: currentStep.transitionId };
       onSweepTrigger({
         transitionId: currentStep.transitionId,
-        token: `${stepIndex}:${currentStep.transitionId}:${sweepDrawMs}`,
+        token: nextSweepToken(),
         durationMs: sweepDrawMs,
       });
     } else {
@@ -105,13 +108,12 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
   }, [stepIndex, steps, currentStep, onHighlightState, onSweepTrigger, stopHighlight]);
 
   // Re-emit the current step's sweep at the new speed whenever the slider moves.
-  // Token includes sweepDrawMs so each speed level is a distinct animation.
   useEffect(() => {
     const active = activeSweepRef.current;
     if (!active) return;
     onSweepTrigger({
       transitionId: active.transitionId,
-      token: `${active.stepIndex}:${active.transitionId}:${sweepDrawMs}`,
+      token: nextSweepToken(),
       durationMs: sweepDrawMs,
     });
   }, [sweepDrawMs, onSweepTrigger]);

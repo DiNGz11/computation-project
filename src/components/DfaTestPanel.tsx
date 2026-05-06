@@ -4,6 +4,9 @@ import type { DfaMachine } from '../types/machine';
 import { runDfa, type DfaStep } from '../logic/dfa';
 import type { SweepTrigger } from './edges/TransitionEdge';
 
+let _sweepSeq = 0;
+const nextSweepToken = () => String(++_sweepSeq);
+
 interface Props {
   machine: DfaMachine;
   onHighlightStates: (ids: string[] | null) => void;
@@ -69,7 +72,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
       activeSweepRef.current = { stepIndex, transitionId: currentStep.transitionId };
       onSweepTrigger({
         transitionId: currentStep.transitionId,
-        token: `${stepIndex}:${currentStep.transitionId}:${sweepDrawMs}`,
+        token: nextSweepToken(),
         durationMs: sweepDrawMs,
       });
     } else {
@@ -101,7 +104,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
     if (!active) return;
     onSweepTrigger({
       transitionId: active.transitionId,
-      token: `${active.stepIndex}:${active.transitionId}:${sweepDrawMs}`,
+      token: nextSweepToken(),
       durationMs: sweepDrawMs,
     });
   }, [sweepDrawMs, onSweepTrigger]);
