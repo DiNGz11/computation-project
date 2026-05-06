@@ -40,6 +40,8 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
   const isSteppingBackRef = useRef(false);
   const speedMsRef = useRef(700);
   useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
+  // Tracks the most-recent forward transition so the slider can re-trigger it at a new speed.
+  const activeSweepRef = useRef<{ stepIndex: number; transitionId: string } | null>(null);
 
   const sweepDrawMs = Math.max(Math.min(Math.round(speedMs * 0.65), 600), 100);
   const SWEEP_MS = sweepDrawMs;
@@ -53,6 +55,7 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
   const atStart = stepIndex <= 0;
 
   const stopHighlight = useCallback(() => {
+    activeSweepRef.current = null;
     if (displayTimeoutRef.current) {
       window.clearTimeout(displayTimeoutRef.current);
       displayTimeoutRef.current = null;
@@ -70,12 +73,14 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
     onHighlightState(null);
     // Stepping back has no incoming transition to highlight; clear instead.
     if (!isBack && currentStep.transitionId) {
+      activeSweepRef.current = { stepIndex, transitionId: currentStep.transitionId };
       onSweepTrigger({
         transitionId: currentStep.transitionId,
-        token: `${stepIndex}:${currentStep.transitionId}`,
+        token: `${stepIndex}:${currentStep.transitionId}:${sweepDrawMs}`,
         durationMs: sweepDrawMs,
       });
     } else {
+      activeSweepRef.current = null;
       onSweepTrigger(null);
     }
 
@@ -98,6 +103,18 @@ export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger
       }
     };
   }, [stepIndex, steps, currentStep, onHighlightState, onSweepTrigger, stopHighlight]);
+
+  // Re-emit the current step's sweep at the new speed whenever the slider moves.
+  // Token includes sweepDrawMs so each speed level is a distinct animation.
+  useEffect(() => {
+    const active = activeSweepRef.current;
+    if (!active) return;
+    onSweepTrigger({
+      transitionId: active.transitionId,
+      token: `${active.stepIndex}:${active.transitionId}:${sweepDrawMs}`,
+      durationMs: sweepDrawMs,
+    });
+  }, [sweepDrawMs, onSweepTrigger]);
 
   const showResult = useCallback((resAccepted: boolean, resStuck: boolean) => {
     setAccepted(resAccepted);

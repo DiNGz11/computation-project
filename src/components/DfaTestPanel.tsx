@@ -36,6 +36,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
   const isSteppingBackRef = useRef(false);
   const speedMsRef = useRef(700);
   useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
+  const activeSweepRef = useRef<{ stepIndex: number; transitionId: string } | null>(null);
 
   // Draw phase = 65% of step interval, clamped to [100, 600] ms.
   // This both controls when the state display updates AND sets the edge animation duration.
@@ -48,6 +49,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
   const displayedStep = steps[displayedStepIndex]; // drives tape / state label
 
   const stopHighlight = useCallback(() => {
+    activeSweepRef.current = null;
     if (displayTimeoutRef.current) {
       window.clearTimeout(displayTimeoutRef.current);
       displayTimeoutRef.current = null;
@@ -64,12 +66,14 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
 
     onHighlightStates(null);
     if (!isBack && currentStep.transitionId) {
+      activeSweepRef.current = { stepIndex, transitionId: currentStep.transitionId };
       onSweepTrigger({
         transitionId: currentStep.transitionId,
-        token: `${stepIndex}:${currentStep.transitionId}`,
+        token: `${stepIndex}:${currentStep.transitionId}:${sweepDrawMs}`,
         durationMs: sweepDrawMs,
       });
     } else {
+      activeSweepRef.current = null;
       onSweepTrigger(null);
     }
 
@@ -91,6 +95,16 @@ export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigge
       }
     };
   }, [stepIndex, steps, currentStep, onHighlightStates, onSweepTrigger, stopHighlight]);
+
+  useEffect(() => {
+    const active = activeSweepRef.current;
+    if (!active) return;
+    onSweepTrigger({
+      transitionId: active.transitionId,
+      token: `${active.stepIndex}:${active.transitionId}:${sweepDrawMs}`,
+      durationMs: sweepDrawMs,
+    });
+  }, [sweepDrawMs, onSweepTrigger]);
 
   const showResult = useCallback((stepList: DfaStep[], idx: number) => {
     const last = stepList[idx];
