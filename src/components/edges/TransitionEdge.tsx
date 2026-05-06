@@ -54,12 +54,12 @@ export default function TransitionEdge(props: EdgeProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sweep animation: paint the edge from source→target, then fade back to gray.
-  // We use requestAnimationFrame so that if the effect fires more than once per
-  // frame (React StrictMode / React Flow double-renders), only the LAST
-  // invocation actually starts the animation — earlier pending rAFs are
-  // cancelled in cleanup. prevHighlightedRef ensures we only trigger on a
-  // genuine false→true edge (not on re-renders while already highlighted).
-  const SWEEP_FADE_MS = 200;
+  // CSS keyframes (edge-draw + edge-fade) are applied imperatively so the
+  // duration can match the speed slider. We set el.style.animation directly —
+  // React won't clobber it because 'animation' is not in the JSX style prop.
+  // rAF debounce: if the effect fires more than once per frame (React/StrictMode
+  // double-renders), the first rAF is cancelled in cleanup; the second invocation
+  // sees prevHighlightedRef.current===true and skips entirely.
   const prevHighlightedRef = useRef(false);
   const sweepPathRef = useRef<SVGPathElement | null>(null);
   const sweepRafRef = useRef<number | null>(null);
@@ -69,21 +69,19 @@ export default function TransitionEdge(props: EdgeProps) {
     prevHighlightedRef.current = curr;
     if (curr && !prev) {
       const drawMs = d?.sweepDuration ?? 600;
-      const totalMs = drawMs + SWEEP_FADE_MS;
-      const drawFrac = drawMs / totalMs;
       if (sweepRafRef.current !== null) cancelAnimationFrame(sweepRafRef.current);
       sweepRafRef.current = requestAnimationFrame(() => {
         sweepRafRef.current = null;
-        if (!sweepPathRef.current) return;
-        sweepPathRef.current.getAnimations().forEach((a) => a.cancel());
-        sweepPathRef.current.animate(
-          [
-            { strokeDashoffset: 1, opacity: 1, offset: 0 },
-            { strokeDashoffset: 0, opacity: 1, offset: drawFrac },
-            { strokeDashoffset: 0, opacity: 0, offset: 1 },
-          ],
-          { duration: totalMs, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
-        );
+        const el = sweepPathRef.current;
+        if (!el) return;
+        // Reset to idle state, force a reflow so the browser registers the
+        // change, then apply the two-phase animation.
+        el.style.animation = '';
+        el.getBoundingClientRect();
+        el.style.animation = [
+          `edge-draw ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+          `edge-fade 200ms ${drawMs}ms ease-out forwards`,
+        ].join(', ');
       });
       return () => {
         if (sweepRafRef.current !== null) {
@@ -92,7 +90,7 @@ export default function TransitionEdge(props: EdgeProps) {
         }
       };
     }
-  // d?.sweepDuration intentionally omitted: only triggered by highlighted edge transition
+  // d?.sweepDuration intentionally omitted: only triggered by highlighted transition
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d?.highlighted]);
 
@@ -268,9 +266,9 @@ export default function TransitionEdge(props: EdgeProps) {
 
       {/* Animated overlay: paints the edge in amber from source→target,
           then fades back to invisible so the edge returns to its base gray.
-          No marker on this path — the arrowhead stays in BaseEdge so we
-          don't get a stray colored arrow at the target before the line
-          actually arrives there (markers ignore stroke-dasharray). */}
+          Base (idle) state is in .sweep-overlay CSS class. The animation
+          is applied imperatively so 'animation' is never in the React style
+          prop and React cannot reset it on re-render. */}
       <path
         ref={sweepPathRef}
         d={edgePath}
@@ -280,12 +278,7 @@ export default function TransitionEdge(props: EdgeProps) {
         strokeWidth={3.5}
         strokeLinecap="round"
         strokeDasharray="1"
-        style={{
-          pointerEvents: 'none',
-          strokeDashoffset: 1,
-          opacity: 0,
-          filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.75))',
-        }}
+        className="sweep-overlay"
       />
 
       {isPda && d?.pdaEditor && (() => {
