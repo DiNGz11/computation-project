@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { he } from '../i18n/he';
 import type { PdaMachine } from '../types/machine';
 import { runPda, type PdaConfig } from '../logic/pda';
+import type { SweepTrigger } from './edges/TransitionEdge';
 
 interface Props {
   machine: PdaMachine;
   onHighlightState: (id: string | null) => void;
-  onHighlightTransition: (id: string | null, drawMs?: number) => void;
+  onSweepTrigger: (trigger: SweepTrigger | null) => void;
 }
 
 const ChevronRight = () => (
@@ -21,7 +22,7 @@ const ChevronLeft = () => (
   </svg>
 );
 
-export default function PdaTestPanel({ machine, onHighlightState, onHighlightTransition }: Props) {
+export default function PdaTestPanel({ machine, onHighlightState, onSweepTrigger }: Props) {
   const [word, setWord] = useState('');
   const [steps, setSteps] = useState<PdaConfig[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -57,8 +58,8 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
       displayTimeoutRef.current = null;
     }
     onHighlightState(null);
-    onHighlightTransition(null);
-  }, [onHighlightState, onHighlightTransition]);
+    onSweepTrigger(null);
+  }, [onHighlightState, onSweepTrigger]);
 
   useEffect(() => {
     if (!currentStep) { stopHighlight(); setDisplayedStepIndex(0); return; }
@@ -67,7 +68,16 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
     isSteppingBackRef.current = false;
 
     onHighlightState(null);
-    onHighlightTransition(currentStep.transitionId, sweepDrawMs);
+    // Stepping back has no incoming transition to highlight; clear instead.
+    if (!isBack && currentStep.transitionId) {
+      onSweepTrigger({
+        transitionId: currentStep.transitionId,
+        token: `${stepIndex}:${currentStep.transitionId}`,
+        durationMs: sweepDrawMs,
+      });
+    } else {
+      onSweepTrigger(null);
+    }
 
     // Skip delay when stepping back or when playback is faster than the sweep
     const delay =
@@ -87,7 +97,7 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
         displayTimeoutRef.current = null;
       }
     };
-  }, [stepIndex, steps, currentStep, onHighlightState, onHighlightTransition, stopHighlight]);
+  }, [stepIndex, steps, currentStep, onHighlightState, onSweepTrigger, stopHighlight]);
 
   const showResult = useCallback((resAccepted: boolean, resStuck: boolean) => {
     setAccepted(resAccepted);

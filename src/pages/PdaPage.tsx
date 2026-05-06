@@ -14,7 +14,7 @@ import PdaTestPanel from '../components/PdaTestPanel';
 import PdaTransitionPopover from '../components/PdaTransitionPopover';
 import StateEditPanel from '../components/StateEditPanel';
 import StateNode, { type StateNodeData } from '../components/nodes/StateNode';
-import TransitionEdge, { type TransitionEdgeData } from '../components/edges/TransitionEdge';
+import TransitionEdge, { type SweepTrigger, type TransitionEdgeData } from '../components/edges/TransitionEdge';
 import { useMachineStore } from '../store/machineStore';
 import { validatePda } from '../logic/pda';
 import { he } from '../i18n/he';
@@ -54,14 +54,10 @@ function PdaPageInner() {
   const deleteTransition = useMachineStore((s) => s.deleteTransition);
 
   const [highlightStateId, setHighlightStateId] = useState<string | null>(null);
-  const [highlightTransitionId, setHighlightTransitionId] = useState<string | null>(null);
-  const [sweepDuration, setSweepDuration] = useState(600);
-  const [sweepKey, setSweepKey] = useState(0);
+  const [sweepTrigger, setSweepTrigger] = useState<SweepTrigger | null>(null);
 
-  const handleHighlightTransition = useCallback((id: string | null, drawMs?: number) => {
-    setHighlightTransitionId(id);
-    if (id !== null) setSweepKey((k) => k + 1);
-    if (drawMs !== undefined) setSweepDuration(drawMs);
+  const handleSweepTrigger = useCallback((trigger: SweepTrigger | null) => {
+    setSweepTrigger(trigger);
   }, []);
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -146,9 +142,8 @@ function PdaPageInner() {
       data: {
         pdaRules: t.rules.map(summarizePda),
         hasReverse: pairSet.has(`${t.to}:${t.from}`),
-        highlighted: highlightTransitionId === t.id,
-        sweepDuration: highlightTransitionId === t.id ? sweepDuration : undefined,
-        sweepKey: highlightTransitionId === t.id ? sweepKey : undefined,
+        highlighted: sweepTrigger?.transitionId === t.id,
+        sweepTrigger: sweepTrigger?.transitionId === t.id ? sweepTrigger : undefined,
         onClickEdit: (id: string) => setEditingTransitionId(id),
         pdaEditor:
           editingTransitionId === t.id ? (
@@ -162,7 +157,7 @@ function PdaPageInner() {
           ) : undefined,
       } satisfies TransitionEdgeData,
     }));
-  }, [machine.transitions, editingTransitionId, highlightTransitionId, sweepDuration, sweepKey, setPdaRules, deleteTransition, showError]);
+  }, [machine.transitions, editingTransitionId, sweepTrigger, setPdaRules, deleteTransition, showError]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -318,7 +313,7 @@ function PdaPageInner() {
           <PdaTestPanel
             machine={machine}
             onHighlightState={setHighlightStateId}
-            onHighlightTransition={handleHighlightTransition}
+            onSweepTrigger={handleSweepTrigger}
           />
           <AlertsPanel alerts={alerts} strings={he.machines.pda.alerts} />
         </aside>

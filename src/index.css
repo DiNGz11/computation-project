@@ -40,13 +40,5 @@ body {
 }
 
 .animate-pop-in { animation: pop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-
-/* ── Transition sweep overlay ──────────────────────── */
-/* Idle: fully transparent, no pointer events.
-   stroke-dashoffset / transition are driven imperatively in TransitionEdge.tsx
-   so the draw speed tracks the speed slider.                         */
-.sweep-overlay {
-  opacity: 0;
-  pointer-events: none;
-  filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.8));
-}
+/* Sweep overlay styling lives inline in TransitionEdge.tsx — the WAAPI
+   keyframes own all timing, so no global class is needed. */

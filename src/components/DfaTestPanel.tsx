@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { he } from '../i18n/he';
 import type { DfaMachine } from '../types/machine';
 import { runDfa, type DfaStep } from '../logic/dfa';
+import type { SweepTrigger } from './edges/TransitionEdge';
 
 interface Props {
   machine: DfaMachine;
   onHighlightStates: (ids: string[] | null) => void;
-  onHighlightTransition: (id: string | null, drawMs?: number) => void;
+  onSweepTrigger: (trigger: SweepTrigger | null) => void;
 }
 
 const ChevronRight = () => (
@@ -21,7 +22,7 @@ const ChevronLeft = () => (
   </svg>
 );
 
-export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTransition }: Props) {
+export default function DfaTestPanel({ machine, onHighlightStates, onSweepTrigger }: Props) {
   const [word, setWord] = useState('');
   const [steps, setSteps] = useState<DfaStep[]>([]);
   const [stepIndex, setStepIndex] = useState(0);
@@ -52,8 +53,8 @@ export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTr
       displayTimeoutRef.current = null;
     }
     onHighlightStates(null);
-    onHighlightTransition(null);
-  }, [onHighlightStates, onHighlightTransition]);
+    onSweepTrigger(null);
+  }, [onHighlightStates, onSweepTrigger]);
 
   useEffect(() => {
     if (!currentStep) { stopHighlight(); setDisplayedStepIndex(0); return; }
@@ -62,7 +63,15 @@ export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTr
     isSteppingBackRef.current = false;
 
     onHighlightStates(null);
-    onHighlightTransition(currentStep.transitionId, sweepDrawMs);
+    if (!isBack && currentStep.transitionId) {
+      onSweepTrigger({
+        transitionId: currentStep.transitionId,
+        token: `${stepIndex}:${currentStep.transitionId}`,
+        durationMs: sweepDrawMs,
+      });
+    } else {
+      onSweepTrigger(null);
+    }
 
     const delay =
       !isBack && currentStep.transitionId && speedMsRef.current >= SWEEP_MS
@@ -81,7 +90,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTr
         displayTimeoutRef.current = null;
       }
     };
-  }, [stepIndex, steps, currentStep, onHighlightStates, onHighlightTransition, stopHighlight]);
+  }, [stepIndex, steps, currentStep, onHighlightStates, onSweepTrigger, stopHighlight]);
 
   const showResult = useCallback((stepList: DfaStep[], idx: number) => {
     const last = stepList[idx];

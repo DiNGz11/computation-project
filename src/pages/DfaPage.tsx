@@ -13,7 +13,7 @@ import AlertsPanel from '../components/AlertsPanel';
 import DfaTestPanel from '../components/DfaTestPanel';
 import StateEditPanel from '../components/StateEditPanel';
 import StateNode, { type StateNodeData } from '../components/nodes/StateNode';
-import TransitionEdge, { type TransitionEdgeData } from '../components/edges/TransitionEdge';
+import TransitionEdge, { type SweepTrigger, type TransitionEdgeData } from '../components/edges/TransitionEdge';
 import { useMachineStore } from '../store/machineStore';
 import { validateDfa } from '../logic/dfa';
 import { he } from '../i18n/he';
@@ -31,7 +31,6 @@ export default function DfaPage() {
 
 interface Highlight {
   stateIds: string[];
-  transitionId: string | null;
 }
 
 function DfaPageInner() {
@@ -46,11 +45,8 @@ function DfaPageInner() {
   const updateDfaTransition = useMachineStore((s) => s.updateDfaTransition);
   const deleteTransition = useMachineStore((s) => s.deleteTransition);
 
-  const [highlight, setHighlight] = useState<Highlight>({
-    stateIds: [], transitionId: null,
-  });
-  const [sweepDuration, setSweepDuration] = useState(600);
-  const [sweepKey, setSweepKey] = useState(0);
+  const [highlight, setHighlight] = useState<Highlight>({ stateIds: [] });
+  const [sweepTrigger, setSweepTrigger] = useState<SweepTrigger | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingTransitionSource, setPendingTransitionSource] = useState<string | null>(null);
   const [newEdgeId, setNewEdgeId] = useState<string | null>(null);
@@ -76,17 +72,12 @@ function DfaPageInner() {
   }, []);
 
   const onHighlightStates = useCallback(
-    (ids: string[] | null) => setHighlight((prev) => ({ ...prev, stateIds: ids ?? [] })),
+    (ids: string[] | null) => setHighlight({ stateIds: ids ?? [] }),
     [],
   );
-  const onHighlightTransition = useCallback(
-    (id: string | null, drawMs?: number) => {
-      setHighlight((prev) => ({ ...prev, transitionId: id }));
-      if (id !== null) setSweepKey((k) => k + 1);
-      if (drawMs !== undefined) setSweepDuration(drawMs);
-    },
-    [],
-  );
+  const onSweepTrigger = useCallback((trigger: SweepTrigger | null) => {
+    setSweepTrigger(trigger);
+  }, []);
 
   const handleRename = useCallback(
     (id: string, label: string) => updateState('dfa', id, { label }),
@@ -148,7 +139,7 @@ function DfaPageInner() {
     // Pre-build a set of all existing "from:to" pairs to detect bidirectional transitions
     const pairSet = new Set(machine.transitions.map((t) => `${t.from}:${t.to}`));
     return machine.transitions.map((t) => {
-      const isHighlighted = t.id === highlight.transitionId;
+      const isHighlighted = t.id === sweepTrigger?.transitionId;
       const hasReverse = pairSet.has(`${t.to}:${t.from}`);
       return {
         id: t.id,
@@ -158,8 +149,7 @@ function DfaPageInner() {
         data: {
           letters: t.letters,
           highlighted: isHighlighted,
-          sweepDuration: isHighlighted ? sweepDuration : undefined,
-          sweepKey: isHighlighted ? sweepKey : undefined,
+          sweepTrigger: isHighlighted ? sweepTrigger : undefined,
           hasReverse,
           newlyCreated: t.id === newEdgeId,
           onUpdateLetters: handleUpdateLetters,
@@ -167,7 +157,7 @@ function DfaPageInner() {
         } satisfies TransitionEdgeData,
       };
     });
-  }, [machine.transitions, highlight, sweepDuration, sweepKey, newEdgeId, handleUpdateLetters, handleDeleteTransition]);
+  }, [machine.transitions, sweepTrigger, newEdgeId, handleUpdateLetters, handleDeleteTransition]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -327,7 +317,7 @@ function DfaPageInner() {
 
         {/* Sidebar — test panel + alerts only */}
         <aside className="w-72 flex-shrink-0 bg-gray-50 border-s border-gray-200 p-3 space-y-3 overflow-y-auto">
-          <DfaTestPanel machine={machine} onHighlightStates={onHighlightStates} onHighlightTransition={onHighlightTransition} />
+          <DfaTestPanel machine={machine} onHighlightStates={onHighlightStates} onSweepTrigger={onSweepTrigger} />
           <AlertsPanel alerts={alerts} strings={he.machines.dfa.alerts} />
         </aside>
       </div>

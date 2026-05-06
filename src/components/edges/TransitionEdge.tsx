@@ -13,13 +13,18 @@ import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { he } from '../../i18n/he';
 
+export interface SweepTrigger {
+  transitionId: string;
+  token: string;        // unique per firing; same token == same animation, never replays
+  durationMs: number;   // draw-phase duration; fade adds a fixed tail
+}
+
 export interface TransitionEdgeData {
   letters?: string[];          // DFA
   pdaRules?: string[];          // PDA: one formatted string per rule, stacked
   tmSummary?: string;           // TM: "a→b, R" style
   highlighted?: boolean;
-  sweepDuration?: number;       // draw-phase duration in ms, passed from the test panel speed
-  sweepKey?: number;            // increments each time this edge should animate; dep-change not doubled by StrictMode
+  sweepTrigger?: SweepTrigger;  // present only on the edge that should sweep right now
   hasReverse?: boolean;         // true when a transition in the opposite direction also exists
   newlyCreated?: boolean;       // auto-open the label editor on first mount
   onUpdateLetters?: (id: string, letters: string[]) => void;
@@ -195,6 +200,46 @@ export default function TransitionEdge(props: EdgeProps) {
   const strokeWidth = d?.highlighted ? 3 : 2;
   const markerId = `arrowhead-${id}`;
 
+  // ── Sweep animation ──────────────────────────────────
+  // A single overlay path is rendered for every edge (kept invisible until
+  // a sweep fires) so the ref is stable across renders. The WAAPI runs the
+  // draw + fade as one keyframe timeline. lastTokenRef short-circuits any
+  // re-run for the same token (StrictMode double-effect, prop churn, etc.),
+  // so each transition step animates exactly once. currentAnimRef cancels
+  // the previous animation only when a genuinely new token arrives.
+  const sweepRef = useRef<SVGPathElement>(null);
+  const lastTokenRef = useRef<string | null>(null);
+  const currentAnimRef = useRef<Animation | null>(null);
+
+  const sweepToken = d?.sweepTrigger?.token;
+  useEffect(() => {
+    const trigger = d?.sweepTrigger;
+    const el = sweepRef.current;
+    if (!trigger || !el) return;
+    if (trigger.token === lastTokenRef.current) return;
+    lastTokenRef.current = trigger.token;
+
+    if (currentAnimRef.current) currentAnimRef.current.cancel();
+
+    const len = el.getTotalLength();
+    if (!len) return;
+    const drawMs = trigger.durationMs;
+    const fadeMs = 200;
+    const total = drawMs + fadeMs;
+
+    el.style.strokeDasharray = String(len);
+    el.style.strokeDashoffset = String(len);
+
+    currentAnimRef.current = el.animate(
+      [
+        { strokeDashoffset: len, opacity: 1 },
+        { strokeDashoffset: 0,   opacity: 1, offset: drawMs / total },
+        { strokeDashoffset: 0,   opacity: 0 },
+      ],
+      { duration: total, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
+    );
+  }, [sweepToken, d?.sweepTrigger]);
+
   const labelText = isDfa
     ? (d?.letters ?? []).join(', ')
     : (d?.tmSummary ?? '');
@@ -224,17 +269,22 @@ export default function TransitionEdge(props: EdgeProps) {
         style={{ stroke, strokeWidth }}
       />
 
-      {/* Animated overlay: paints the edge in amber from source→target,
-          then fades. Keyed on sweepKey so each transition gets a fresh
-          DOM element and its own animation lifecycle — no shared refs,
-          no double-play from StrictMode or remounts. */}
-      {d?.sweepKey ? (
-        <SweepOverlay
-          key={d.sweepKey}
-          edgePath={edgePath}
-          drawMs={d.sweepDuration ?? 600}
-        />
-      ) : null}
+      {/* Animated overlay: paints the edge in amber from source→target then
+          fades. Always rendered (so the ref is stable); the effect above
+          drives the WAAPI animation when a new sweepTrigger token arrives. */}
+      <path
+        ref={sweepRef}
+        d={edgePath}
+        fill="none"
+        stroke="#f97316"
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        pointerEvents="none"
+        style={{
+          opacity: 0,
+          filter: 'drop-shadow(0 0 5px rgba(249, 115, 22, 0.8))',
+        }}
+      />
 
       {isPda && d?.pdaEditor && (() => {
         const screen = flowToScreenPosition({ x: edgeLabelX, y: edgeLabelY });
@@ -352,56 +402,3 @@ export default function TransitionEdge(props: EdgeProps) {
   );
 }
 
-// Sweep overlay: a fresh DOM element per transition (parent uses
-// key={sweepKey} so React mounts a new instance for each sweep).
-//
-// Why a separate component? Mounting a new element is the only way to
-// guarantee a single, isolated animation per transition. The previous
-// shared-element approach was prone to double-play because the parent's
-// effect could fire twice (StrictMode, prop churn) on the same DOM node.
-//
-// Why rAF for the transition trigger? Setting transition + the new
-// dashoffset value back-to-back lets some browsers coalesce them — the
-// browser only ever "sees" the final state and skips the animation.
-// Deferring the trigger to the next frame guarantees the browser commits
-// the hidden start state first, so the transition actually plays.
-function SweepOverlay({ edgePath, drawMs }: { edgePath: string; drawMs: number }) {
-  const ref = useRef<SVGPathElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const len = el.getTotalLength();
-    el.style.strokeDasharray = String(len);
-    el.style.strokeDashoffset = String(len);
-    el.style.opacity = '1';
-
-    let raf: number | null = requestAnimationFrame(() => {
-      raf = null;
-      el.style.transition = `stroke-dashoffset ${drawMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
-      el.style.strokeDashoffset = '0';
-    });
-
-    const fadeTimer = window.setTimeout(() => {
-      el.style.transition = 'opacity 200ms ease-out';
-      el.style.opacity = '0';
-    }, drawMs);
-
-    return () => {
-      if (raf !== null) cancelAnimationFrame(raf);
-      window.clearTimeout(fadeTimer);
-    };
-  }, [drawMs, edgePath]);
-
-  return (
-    <path
-      ref={ref}
-      d={edgePath}
-      fill="none"
-      stroke="#f97316"
-      strokeWidth={3.5}
-      strokeLinecap="round"
-      className="sweep-overlay"
-    />
-  );
-}
