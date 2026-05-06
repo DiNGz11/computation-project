@@ -33,6 +33,14 @@ export interface TransitionEdgeData {
   pdaEditor?: ReactNode;        // when set on a PDA edge, rendered in place of the label
 }
 
+// Per-edge "last animated token" stored at module scope, NOT in a ref.
+// React Flow remounts the edge component on some internal reconciliations
+// (observed: a remount happens between the trigger render and the next),
+// which would reset a useRef and let the same token re-animate. A module
+// Map survives those remounts, so each token animates exactly once even
+// across instances.
+const animatedTokensByEdge = new Map<string, string>();
+
 // Source starts flush with the circle edge; target is pushed out to leave room for the arrowhead.
 const SOURCE_RADIUS = 40;
 const TARGET_RADIUS = 46;
@@ -201,14 +209,13 @@ export default function TransitionEdge(props: EdgeProps) {
   const markerId = `arrowhead-${id}`;
 
   // ── Sweep animation ──────────────────────────────────
-  // A single overlay path is rendered for every edge (kept invisible until
-  // a sweep fires) so the ref is stable across renders. The WAAPI runs the
-  // draw + fade as one keyframe timeline. lastTokenRef short-circuits any
-  // re-run for the same token (StrictMode double-effect, prop churn, etc.),
-  // so each transition step animates exactly once. currentAnimRef cancels
-  // the previous animation only when a genuinely new token arrives.
+  // The overlay path is rendered for every edge (invisible until a sweep
+  // fires). The WAAPI runs draw + fade as one keyframe timeline. The
+  // already-animated token is tracked in a module-level Map (not a ref),
+  // so a React Flow remount of the edge component can't replay the same
+  // token. currentAnimRef cancels the previous animation only when a
+  // genuinely new token arrives.
   const sweepRef = useRef<SVGPathElement>(null);
-  const lastTokenRef = useRef<string | null>(null);
   const currentAnimRef = useRef<Animation | null>(null);
 
   const sweepToken = d?.sweepTrigger?.token;
@@ -216,8 +223,8 @@ export default function TransitionEdge(props: EdgeProps) {
     const trigger = d?.sweepTrigger;
     const el = sweepRef.current;
     if (!trigger || !el) return;
-    if (trigger.token === lastTokenRef.current) return;
-    lastTokenRef.current = trigger.token;
+    if (trigger.token === animatedTokensByEdge.get(id)) return;
+    animatedTokensByEdge.set(id, trigger.token);
 
     if (currentAnimRef.current) currentAnimRef.current.cancel();
 
@@ -238,7 +245,7 @@ export default function TransitionEdge(props: EdgeProps) {
       ],
       { duration: total, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
     );
-  }, [sweepToken, d?.sweepTrigger]);
+  }, [sweepToken, d?.sweepTrigger, id]);
 
   const labelText = isDfa
     ? (d?.letters ?? []).join(', ')
