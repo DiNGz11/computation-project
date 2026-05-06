@@ -55,9 +55,11 @@ function PdaPageInner() {
 
   const [highlightStateId, setHighlightStateId] = useState<string | null>(null);
   const [highlightTransitionId, setHighlightTransitionId] = useState<string | null>(null);
+  const [sweepDuration, setSweepDuration] = useState(600);
 
-  const handleHighlightTransition = useCallback((id: string | null) => {
+  const handleHighlightTransition = useCallback((id: string | null, drawMs?: number) => {
     setHighlightTransitionId(id);
+    if (drawMs !== undefined) setSweepDuration(drawMs);
   }, []);
   const [editingTransitionId, setEditingTransitionId] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -143,6 +145,7 @@ function PdaPageInner() {
         pdaRules: t.rules.map(summarizePda),
         hasReverse: pairSet.has(`${t.to}:${t.from}`),
         highlighted: highlightTransitionId === t.id,
+        sweepDuration: highlightTransitionId === t.id ? sweepDuration : undefined,
         onClickEdit: (id: string) => setEditingTransitionId(id),
         pdaEditor:
           editingTransitionId === t.id ? (
@@ -156,7 +159,7 @@ function PdaPageInner() {
           ) : undefined,
       } satisfies TransitionEdgeData,
     }));
-  }, [machine.transitions, editingTransitionId, highlightTransitionId, setPdaRules, deleteTransition, showError]);
+  }, [machine.transitions, editingTransitionId, highlightTransitionId, sweepDuration, setPdaRules, deleteTransition, showError]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

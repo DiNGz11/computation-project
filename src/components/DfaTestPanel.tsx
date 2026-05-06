@@ -6,7 +6,7 @@ import { runDfa, type DfaStep } from '../logic/dfa';
 interface Props {
   machine: DfaMachine;
   onHighlightStates: (ids: string[] | null) => void;
-  onHighlightTransition: (id: string | null) => void;
+  onHighlightTransition: (id: string | null, drawMs?: number) => void;
 }
 
 const ChevronRight = () => (
@@ -36,7 +36,10 @@ export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTr
   const speedMsRef = useRef(700);
   useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
 
-  const SWEEP_MS = 600;
+  // Draw phase = 65% of step interval, clamped to [100, 600] ms.
+  // This both controls when the state display updates AND sets the edge animation duration.
+  const sweepDrawMs = Math.max(Math.min(Math.round(speedMs * 0.65), 600), 100);
+  const SWEEP_MS = sweepDrawMs;
 
   const hasStart = machine.states.some((s) => s.isStart);
   const totalSteps = steps.length;
@@ -59,7 +62,7 @@ export default function DfaTestPanel({ machine, onHighlightStates, onHighlightTr
     isSteppingBackRef.current = false;
 
     onHighlightStates(null);
-    onHighlightTransition(currentStep.transitionId);
+    onHighlightTransition(currentStep.transitionId, sweepDrawMs);
 
     const delay =
       !isBack && currentStep.transitionId && speedMsRef.current >= SWEEP_MS

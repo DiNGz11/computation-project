@@ -18,6 +18,7 @@ export interface TransitionEdgeData {
   pdaRules?: string[];          // PDA: one formatted string per rule, stacked
   tmSummary?: string;           // TM: "a→b, R" style
   highlighted?: boolean;
+  sweepDuration?: number;       // draw-phase duration in ms, passed from the test panel speed
   hasReverse?: boolean;         // true when a transition in the opposite direction also exists
   newlyCreated?: boolean;       // auto-open the label editor on first mount
   onUpdateLetters?: (id: string, letters: string[]) => void;
@@ -52,33 +53,47 @@ export default function TransitionEdge(props: EdgeProps) {
   const [draft, setDraft] = useState((d?.letters ?? []).join(','));
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sweep animation: paint the edge from source→target, then fade the
-  // colored overlay back to invisible so the edge returns to its base gray.
-  // Total = SWEEP_DRAW_MS (paint) + SWEEP_FADE_MS (fade out).
-  // Fires exactly once per false→true transition of `highlighted`,
-  // driven imperatively via the Web Animations API on the path ref so
-  // React/StrictMode re-renders cannot re-trigger it.
-  const SWEEP_DRAW_MS = 600;
-  const SWEEP_FADE_MS = 250;
-  const SWEEP_TOTAL_MS = SWEEP_DRAW_MS + SWEEP_FADE_MS;
+  // Sweep animation: paint the edge from source→target, then fade back to gray.
+  // We use requestAnimationFrame so that if the effect fires more than once per
+  // frame (React StrictMode / React Flow double-renders), only the LAST
+  // invocation actually starts the animation — earlier pending rAFs are
+  // cancelled in cleanup. prevHighlightedRef ensures we only trigger on a
+  // genuine false→true edge (not on re-renders while already highlighted).
+  const SWEEP_FADE_MS = 200;
   const prevHighlightedRef = useRef(false);
   const sweepPathRef = useRef<SVGPathElement | null>(null);
+  const sweepRafRef = useRef<number | null>(null);
   useEffect(() => {
     const prev = prevHighlightedRef.current;
     const curr = d?.highlighted ?? false;
     prevHighlightedRef.current = curr;
-    if (curr && !prev && sweepPathRef.current) {
-      sweepPathRef.current.getAnimations().forEach((a) => a.cancel());
-      const drawFrac = SWEEP_DRAW_MS / SWEEP_TOTAL_MS;
-      sweepPathRef.current.animate(
-        [
-          { strokeDashoffset: 1, opacity: 1, offset: 0 },
-          { strokeDashoffset: 0, opacity: 1, offset: drawFrac },
-          { strokeDashoffset: 0, opacity: 0, offset: 1 },
-        ],
-        { duration: SWEEP_TOTAL_MS, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
-      );
+    if (curr && !prev) {
+      const drawMs = d?.sweepDuration ?? 600;
+      const totalMs = drawMs + SWEEP_FADE_MS;
+      const drawFrac = drawMs / totalMs;
+      if (sweepRafRef.current !== null) cancelAnimationFrame(sweepRafRef.current);
+      sweepRafRef.current = requestAnimationFrame(() => {
+        sweepRafRef.current = null;
+        if (!sweepPathRef.current) return;
+        sweepPathRef.current.getAnimations().forEach((a) => a.cancel());
+        sweepPathRef.current.animate(
+          [
+            { strokeDashoffset: 1, opacity: 1, offset: 0 },
+            { strokeDashoffset: 0, opacity: 1, offset: drawFrac },
+            { strokeDashoffset: 0, opacity: 0, offset: 1 },
+          ],
+          { duration: totalMs, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
+        );
+      });
+      return () => {
+        if (sweepRafRef.current !== null) {
+          cancelAnimationFrame(sweepRafRef.current);
+          sweepRafRef.current = null;
+        }
+      };
     }
+  // d?.sweepDuration intentionally omitted: only triggered by highlighted edge transition
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [d?.highlighted]);
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);

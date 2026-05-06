@@ -6,7 +6,7 @@ import { runPda, type PdaConfig } from '../logic/pda';
 interface Props {
   machine: PdaMachine;
   onHighlightState: (id: string | null) => void;
-  onHighlightTransition: (id: string | null) => void;
+  onHighlightTransition: (id: string | null, drawMs?: number) => void;
 }
 
 const ChevronRight = () => (
@@ -40,7 +40,8 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
   const speedMsRef = useRef(700);
   useEffect(() => { speedMsRef.current = speedMs; }, [speedMs]);
 
-  const SWEEP_MS = 600;
+  const sweepDrawMs = Math.max(Math.min(Math.round(speedMs * 0.65), 600), 100);
+  const SWEEP_MS = sweepDrawMs;
 
   const hasStart = machine.states.some((s) => s.isStart);
   const totalSteps = steps.length;
@@ -66,7 +67,7 @@ export default function PdaTestPanel({ machine, onHighlightState, onHighlightTra
     isSteppingBackRef.current = false;
 
     onHighlightState(null);
-    onHighlightTransition(currentStep.transitionId);
+    onHighlightTransition(currentStep.transitionId, sweepDrawMs);
 
     // Skip delay when stepping back or when playback is faster than the sweep
     const delay =

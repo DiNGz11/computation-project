@@ -49,6 +49,7 @@ function DfaPageInner() {
   const [highlight, setHighlight] = useState<Highlight>({
     stateIds: [], transitionId: null,
   });
+  const [sweepDuration, setSweepDuration] = useState(600);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pendingTransitionSource, setPendingTransitionSource] = useState<string | null>(null);
   const [newEdgeId, setNewEdgeId] = useState<string | null>(null);
@@ -78,7 +79,10 @@ function DfaPageInner() {
     [],
   );
   const onHighlightTransition = useCallback(
-    (id: string | null) => setHighlight((prev) => ({ ...prev, transitionId: id })),
+    (id: string | null, drawMs?: number) => {
+      setHighlight((prev) => ({ ...prev, transitionId: id }));
+      if (drawMs !== undefined) setSweepDuration(drawMs);
+    },
     [],
   );
 
@@ -152,6 +156,7 @@ function DfaPageInner() {
         data: {
           letters: t.letters,
           highlighted: isHighlighted,
+          sweepDuration: isHighlighted ? sweepDuration : undefined,
           hasReverse,
           newlyCreated: t.id === newEdgeId,
           onUpdateLetters: handleUpdateLetters,
@@ -159,7 +164,7 @@ function DfaPageInner() {
         } satisfies TransitionEdgeData,
       };
     });
-  }, [machine.transitions, highlight, newEdgeId, handleUpdateLetters, handleDeleteTransition]);
+  }, [machine.transitions, highlight, sweepDuration, newEdgeId, handleUpdateLetters, handleDeleteTransition]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
